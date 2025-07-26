@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/api_config.dart';
+import 'street_view_screen.dart';
 // Add flutter_map and latlong2 for web
 import 'package:flutter_map/flutter_map.dart' as fm;
 import 'package:latlong2/latlong.dart' as latlng;
@@ -189,16 +190,28 @@ class _MapScreenState extends State<MapScreen> {
 
   // Street View methods
   void _toggleStreetView() {
-    setState(() {
-      _isStreetViewMode = !_isStreetViewMode;
-      print('Street View mode: $_isStreetViewMode');
-      if (_isStreetViewMode && _currentLatLng != null) {
-        print('Loading Street View for location: $_currentLatLng');
-        _loadStreetView(_currentLatLng!);
-      } else if (_isStreetViewMode && _currentLatLng == null) {
-        print('Warning: No current location available for Street View');
-      }
-    });
+    if (_currentLatLng != null) {
+      print('Opening Street View for location: $_currentLatLng');
+      _loadStreetView(_currentLatLng!);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StreetViewScreen(
+            location: _currentLatLng!,
+            streetViewUrl: _streetViewUrl,
+            streetViewImageUrl: _streetViewImageUrl,
+          ),
+        ),
+      );
+    } else {
+      print('Warning: No current location available for Street View');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No location available for Street View'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 
   void _loadStreetView(LatLng location) {
@@ -950,7 +963,20 @@ class _MapScreenState extends State<MapScreen> {
                                                           ),
                                                         ),
                                                         ElevatedButton.icon(
-                                                          onPressed: _loadStreetViewImage,
+                                                          onPressed: () {
+                                                            if (_streetViewLocation != null) {
+                                                              Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                  builder: (context) => StreetViewScreen(
+                                                                    location: _streetViewLocation!,
+                                                                    streetViewUrl: _streetViewUrl,
+                                                                    streetViewImageUrl: _streetViewImageUrl,
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            }
+                                                          },
                                                           icon: const Icon(Icons.image),
                                                           label: const Text('Show Image'),
                                                           style: ElevatedButton.styleFrom(
