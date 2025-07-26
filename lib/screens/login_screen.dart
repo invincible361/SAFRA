@@ -228,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         return 'Password cannot contain repeating characters.';
                       }
                       return null;
-                  };
+                    },
                   ),
                   const SizedBox(height: 10),
                   // Forgot Password link
@@ -354,10 +354,12 @@ class _LoginScreenState extends State<LoginScreen> {
       {required TextEditingController controller,
       required String hint,
       required IconData icon,
-      required bool obscure}) {
+      required bool obscure,
+      String? Function(String?)? validator}) {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
+      validator: validator,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.white54),
