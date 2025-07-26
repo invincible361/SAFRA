@@ -3,6 +3,7 @@ import 'screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'config/api_config.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
@@ -16,6 +17,7 @@ Future<void> main() async {
     final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
     if (apiKey != null && apiKey.isNotEmpty) {
       print("API key loaded successfully: ${apiKey.substring(0, 10)}...");
+      ApiConfig.setApiKey(apiKey);
     } else {
       print("Warning: API key is empty or null");
     }
