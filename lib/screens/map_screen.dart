@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/api_config.dart';
 // Add flutter_map and latlong2 for web
 import 'package:flutter_map/flutter_map.dart' as fm;
@@ -35,6 +36,11 @@ class _MapScreenState extends State<MapScreen> {
   bool _showSuggestions = false;
   List<Map<String, dynamic>> _navigationSteps = [];
   int _currentStepIndex = 0;
+  
+  // Street View variables
+  bool _isStreetViewMode = false;
+  String? _streetViewUrl;
+  LatLng? _streetViewLocation;
 
   // Add these for web at the class level
   final TextEditingController _webSearchController = TextEditingController();
@@ -177,6 +183,45 @@ class _MapScreenState extends State<MapScreen> {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
       );
     });
+  }
+
+  // Street View methods
+  void _toggleStreetView() {
+    setState(() {
+      _isStreetViewMode = !_isStreetViewMode;
+      if (_isStreetViewMode && _currentLatLng != null) {
+        _loadStreetView(_currentLatLng!);
+      }
+    });
+  }
+
+  void _loadStreetView(LatLng location) {
+    setState(() {
+      _streetViewLocation = location;
+      _streetViewUrl = _generateStreetViewUrl(location);
+    });
+  }
+
+  String _generateStreetViewUrl(LatLng location) {
+    // Use Google Maps Street View URL format
+    return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${location.latitude},${location.longitude}';
+  }
+
+  Future<void> _openStreetView() async {
+    if (_streetViewUrl != null) {
+      final Uri url = Uri.parse(_streetViewUrl!);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        print('Could not launch Street View URL: $_streetViewUrl');
+      }
+    }
+  }
+
+  void _onMapTap(LatLng location) {
+    if (_isStreetViewMode) {
+      _loadStreetView(location);
+    }
   }
 
   void _onDestinationChanged() async {
@@ -690,16 +735,85 @@ class _MapScreenState extends State<MapScreen> {
                   // ... existing suggestion dropdown ...
                 ],
               ),
-            ),
-            if (_navigationSteps.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.navigation),
-                  label: const Text('Navigate'),
-                  onPressed: _showNavigationModal,
-                ),
-              ),
+                                ),
+                    // Street View Widget
+                    if (_isStreetViewMode && _streetViewUrl != null)
+                      Container(
+                        height: 200,
+                        margin: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            children: [
+                              // Street View iframe or image
+                              Container(
+                                width: double.infinity,
+                                height: double.infinity,
+                                color: Colors.grey[300],
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.streetview,
+                                        size: 48,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Street View',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                                                             ElevatedButton(
+                                         onPressed: _openStreetView,
+                                         child: const Text('Open Street View'),
+                                       ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Close button
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: _toggleStreetView,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    if (_navigationSteps.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.navigation),
+                          label: const Text('Navigate'),
+                          onPressed: _showNavigationModal,
+                        ),
+                      ),
           ],
         ),
       );
@@ -757,18 +871,36 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                     Expanded(
-                      child: GoogleMap(
-                        initialCameraPosition: _initialPosition!,
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                        },
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: true,
-                        markers: {
-                          if (_userMarker != null) _userMarker!,
-                          if (_destinationMarker != null) _destinationMarker!,
-                        },
-                        polylines: _routePolyline != null ? {_routePolyline!} : {},
+                      child: Stack(
+                        children: [
+                          GoogleMap(
+                            initialCameraPosition: _initialPosition!,
+                            onMapCreated: (controller) {
+                              _mapController = controller;
+                            },
+                            onTap: _onMapTap,
+                            myLocationEnabled: true,
+                            myLocationButtonEnabled: true,
+                            markers: {
+                              if (_userMarker != null) _userMarker!,
+                              if (_destinationMarker != null) _destinationMarker!,
+                            },
+                            polylines: _routePolyline != null ? {_routePolyline!} : {},
+                          ),
+                          // Street View Toggle Button
+                          Positioned(
+                            top: 16,
+                            right: 16,
+                            child: FloatingActionButton(
+                              onPressed: _toggleStreetView,
+                              backgroundColor: _isStreetViewMode ? Colors.orange : Colors.blue,
+                              child: Icon(
+                                _isStreetViewMode ? Icons.map : Icons.streetview,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     if (_navigationSteps.isNotEmpty)
