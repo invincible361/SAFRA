@@ -3,13 +3,17 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StreetViewScreen extends StatefulWidget {
-  final LatLng location;
+  final LatLng startLocation;
+  final LatLng endLocation;
+  final List<LatLng> routePoints;
   final String? streetViewUrl;
   final String? streetViewImageUrl;
 
   const StreetViewScreen({
     Key? key,
-    required this.location,
+    required this.startLocation,
+    required this.endLocation,
+    required this.routePoints,
     this.streetViewUrl,
     this.streetViewImageUrl,
   }) : super(key: key);
@@ -22,24 +26,67 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
   bool _isLoading = true;
   bool _hasError = false;
   String? _errorMessage;
+  int _currentPointIndex = 0;
+  List<String> _streetViewImageUrls = [];
+  List<String> _streetViewUrls = [];
 
   @override
   void initState() {
     super.initState();
-    _loadStreetViewImage();
+    _generateRouteStreetViews();
   }
 
-  void _loadStreetViewImage() {
+  void _generateRouteStreetViews() {
     setState(() {
       _isLoading = true;
       _hasError = false;
+      _streetViewImageUrls.clear();
+      _streetViewUrls.clear();
+    });
+
+    // Generate Street View URLs for all route points
+    for (int i = 0; i < widget.routePoints.length; i++) {
+      final point = widget.routePoints[i];
+      final imageUrl = _generateStreetViewImageUrl(point);
+      final streetViewUrl = _generateStreetViewUrl(point);
+      
+      _streetViewImageUrls.add(imageUrl);
+      _streetViewUrls.add(streetViewUrl);
+    }
+
+    setState(() {
+      _isLoading = false;
     });
   }
 
+  String _generateStreetViewImageUrl(LatLng location) {
+    return 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${location.latitude},${location.longitude}&key=AIzaSyA1nhqmZMTFmqktFcJML_6WR5PDFGqH6N8&heading=210&pitch=10&fov=90&source=outdoor';
+  }
+
+  String _generateStreetViewUrl(LatLng location) {
+    return 'https://www.google.com/maps/@${location.latitude},${location.longitude},3a,75y,0h,90t/data=!3m6!1e1!3m4!1s!2e0!7i16384!8i8192';
+  }
+
+  void _nextPoint() {
+    if (_currentPointIndex < widget.routePoints.length - 1) {
+      setState(() {
+        _currentPointIndex++;
+      });
+    }
+  }
+
+  void _previousPoint() {
+    if (_currentPointIndex > 0) {
+      setState(() {
+        _currentPointIndex--;
+      });
+    }
+  }
+
   Future<void> _openInMaps() async {
-    if (widget.streetViewUrl != null) {
+    if (_currentPointIndex < _streetViewUrls.length) {
       try {
-        final Uri url = Uri.parse(widget.streetViewUrl!);
+        final Uri url = Uri.parse(_streetViewUrls[_currentPointIndex]);
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
         } else {
@@ -62,9 +109,27 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.routePoints.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Street View'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(
+          child: Text('No route points available'),
+        ),
+      );
+    }
+
+    final currentPoint = widget.routePoints[_currentPointIndex];
+    final currentImageUrl = _currentPointIndex < _streetViewImageUrls.length 
+        ? _streetViewImageUrls[_currentPointIndex] 
+        : null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Street View'),
+        title: const Text('Route Street View'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
@@ -77,7 +142,7 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
       ),
       body: Column(
         children: [
-          // Location info
+          // Route progress and location info
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16.0),
@@ -85,26 +150,54 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Route Progress',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    Text(
+                      '${_currentPointIndex + 1} / ${widget.routePoints.length}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[600],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: (_currentPointIndex + 1) / widget.routePoints.length,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[600]!),
+                ),
+                const SizedBox(height: 12),
                 Text(
-                  'Location',
+                  'Current Location',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                    color: Colors.grey[700],
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Latitude: ${widget.location.latitude.toStringAsFixed(6)}',
+                  'Latitude: ${currentPoint.latitude.toStringAsFixed(6)}',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: Colors.grey[600],
                   ),
                 ),
                 Text(
-                  'Longitude: ${widget.location.longitude.toStringAsFixed(6)}',
+                  'Longitude: ${currentPoint.longitude.toStringAsFixed(6)}',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: Colors.grey[600],
                   ),
                 ),
@@ -129,17 +222,14 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: widget.streetViewImageUrl != null
+                child: currentImageUrl != null
                     ? Image.network(
-                        widget.streetViewImageUrl!,
+                        currentImageUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) {
-                            setState(() {
-                              _isLoading = false;
-                            });
                             return child;
                           }
                           return Container(
@@ -168,11 +258,6 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                           );
                         },
                         errorBuilder: (context, error, stackTrace) {
-                          setState(() {
-                            _isLoading = false;
-                            _hasError = true;
-                            _errorMessage = 'Failed to load Street View image';
-                          });
                           return Container(
                             color: Colors.grey[300],
                             child: Center(
@@ -254,37 +339,75 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
               ),
             ),
           ),
-          // Action buttons
+          // Navigation and action buttons
           Container(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
               children: [
-                ElevatedButton.icon(
-                  onPressed: _openInMaps,
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Open in Maps'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                // Navigation buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _currentPointIndex > 0 ? _previousPoint : null,
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Previous'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
                     ),
-                  ),
+                    ElevatedButton.icon(
+                      onPressed: _currentPointIndex < widget.routePoints.length - 1 ? _nextPoint : null,
+                      icon: const Icon(Icons.arrow_forward),
+                      label: const Text('Next'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  label: const Text('Close'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                const SizedBox(height: 12),
+                // Action buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _openInMaps,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Open in Maps'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
                     ),
-                  ),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Close'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

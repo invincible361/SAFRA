@@ -44,6 +44,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _streetViewLocation;
   bool _showStreetViewImage = false;
   String? _streetViewImageUrl;
+  List<LatLng> _routePoints = [];
 
   // Add these for web at the class level
   final TextEditingController _webSearchController = TextEditingController();
@@ -197,7 +198,9 @@ class _MapScreenState extends State<MapScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => StreetViewScreen(
-            location: _currentLatLng!,
+            startLocation: _currentLatLng!,
+            endLocation: _destinationMarker?.position ?? _currentLatLng!,
+            routePoints: _routePoints.isNotEmpty ? _routePoints : [_currentLatLng!],
             streetViewUrl: _streetViewUrl,
             streetViewImageUrl: _streetViewImageUrl,
           ),
@@ -388,6 +391,7 @@ class _MapScreenState extends State<MapScreen> {
             width: 5,
             points: points, // Use all decoded points
           );
+          _routePoints = points; // Store route points for Street View
           _navigationSteps = steps;
           _currentStepIndex = 0;
         });
@@ -969,7 +973,9 @@ class _MapScreenState extends State<MapScreen> {
                                                                 context,
                                                                 MaterialPageRoute(
                                                                   builder: (context) => StreetViewScreen(
-                                                                    location: _streetViewLocation!,
+                                                                    startLocation: _currentLatLng ?? _streetViewLocation!,
+                                                                    endLocation: _destinationMarker?.position ?? _streetViewLocation!,
+                                                                    routePoints: _routePoints.isNotEmpty ? _routePoints : [_streetViewLocation!],
                                                                     streetViewUrl: _streetViewUrl,
                                                                     streetViewImageUrl: _streetViewImageUrl,
                                                                   ),
