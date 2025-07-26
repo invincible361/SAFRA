@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+  
   await Supabase.initialize(
     url: 'https://fjsrzduddrgciuytkrad.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqc3J6ZHVkZHJnY2l1eXRrcmFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5MjAyNTUsImV4cCI6MjA2NjQ5NjI1NX0.LwyrVqvWKxLmoZZc7uzC8vvIkiYz9tjbN1f-zVXzR5g',
