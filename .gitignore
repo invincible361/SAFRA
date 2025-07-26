@@ -48,6 +48,7 @@ app.*.map.json
 .env
 .env.local
 .env.production
+assets/.env
 
 # Android configuration with API keys
 android/gradle.properties

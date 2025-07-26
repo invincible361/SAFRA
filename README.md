@@ -23,11 +23,11 @@ This app uses Google Maps API. To set up your API key:
 
 1. **Get your API key** from [Google Cloud Console](https://console.cloud.google.com/)
 2. **Create environment files**:
-   - Copy `.env.example` to `.env`
+   - Copy `.env.example` to `assets/.env`
    - Copy `android/gradle.properties.example` to `android/gradle.properties`
    - Copy `ios/Runner/Config.swift.example` to `ios/Runner/Config.swift`
 3. **Add your API key** to the configuration files:
-   - In `.env`: `GOOGLE_MAPS_API_KEY=your_actual_api_key_here`
+   - In `assets/.env`: `GOOGLE_MAPS_API_KEY=your_actual_api_key_here`
    - In `android/gradle.properties`: `GOOGLE_MAPS_API_KEY=your_actual_api_key_here`
    - In `ios/Runner/Config.swift`: Replace `your_google_maps_api_key_here` with your actual key
 

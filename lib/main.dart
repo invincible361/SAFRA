@@ -9,7 +9,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Load environment variables
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: "assets/.env");
+    print("Successfully loaded .env file");
+  } catch (e) {
+    print("Warning: Could not load .env file: $e");
+    print("Make sure to create a .env file in the assets folder");
+  }
   
   await Supabase.initialize(
     url: 'https://fjsrzduddrgciuytkrad.supabase.co',
