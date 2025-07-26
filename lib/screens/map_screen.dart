@@ -189,8 +189,12 @@ class _MapScreenState extends State<MapScreen> {
   void _toggleStreetView() {
     setState(() {
       _isStreetViewMode = !_isStreetViewMode;
+      print('Street View mode: $_isStreetViewMode');
       if (_isStreetViewMode && _currentLatLng != null) {
+        print('Loading Street View for location: $_currentLatLng');
         _loadStreetView(_currentLatLng!);
+      } else if (_isStreetViewMode && _currentLatLng == null) {
+        print('Warning: No current location available for Street View');
       }
     });
   }
@@ -199,22 +203,47 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _streetViewLocation = location;
       _streetViewUrl = _generateStreetViewUrl(location);
+      print('Street View URL generated: $_streetViewUrl');
     });
   }
 
   String _generateStreetViewUrl(LatLng location) {
-    // Use Google Maps Street View URL format
-    return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${location.latitude},${location.longitude}';
+    // Use Google Maps Street View URL format with proper parameters
+    return 'https://www.google.com/maps/@${location.latitude},${location.longitude},3a,75y,0h,90t/data=!3m6!1e1!3m4!1s!2e0!7i16384!8i8192';
   }
 
   Future<void> _openStreetView() async {
     if (_streetViewUrl != null) {
       final Uri url = Uri.parse(_streetViewUrl!);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        print('Could not launch Street View URL: $_streetViewUrl');
+      try {
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+          print('Opening Street View: $_streetViewUrl');
+        } else {
+          print('Could not launch Street View URL: $_streetViewUrl');
+          // Show a snackbar or dialog to inform the user
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not open Street View. Please try again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        print('Error opening Street View: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error opening Street View: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
+    } else {
+      print('Street View URL is null');
     }
   }
 
@@ -749,7 +778,7 @@ class _MapScreenState extends State<MapScreen> {
                           borderRadius: BorderRadius.circular(12),
                           child: Stack(
                             children: [
-                              // Street View iframe or image
+                                                            // Street View iframe or image
                               Container(
                                 width: double.infinity,
                                 height: double.infinity,
@@ -772,11 +801,25 @@ class _MapScreenState extends State<MapScreen> {
                                           color: Colors.grey[600],
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
-                                                                             ElevatedButton(
-                                         onPressed: _openStreetView,
-                                         child: const Text('Open Street View'),
-                                       ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ElevatedButton.icon(
+                                        onPressed: _openStreetView,
+                                        icon: const Icon(Icons.open_in_new),
+                                        label: const Text('Open in Maps'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
