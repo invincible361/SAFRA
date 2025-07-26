@@ -207,18 +207,41 @@ class _MapScreenState extends State<MapScreen> {
       _streetViewUrl = _generateStreetViewUrl(location);
       _streetViewImageUrl = _generateStreetViewImageUrl(location);
       print('Street View URL generated: $_streetViewUrl');
+      print('Street View Image URL generated: $_streetViewImageUrl');
     });
   }
 
   String _generateStreetViewImageUrl(LatLng location) {
-    // Generate Street View static image URL
-    return 'https://maps.googleapis.com/maps/api/streetview?size=400x300&location=${location.latitude},${location.longitude}&key=$googleApiKey&heading=210&pitch=10&fov=90';
+    // Generate Street View static image URL with better parameters
+    return 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${location.latitude},${location.longitude}&key=$googleApiKey&heading=210&pitch=10&fov=90&source=outdoor';
   }
 
   void _loadStreetViewImage() {
     setState(() {
       _showStreetViewImage = !_showStreetViewImage;
+      print('Show Street View Image: $_showStreetViewImage');
+      if (_showStreetViewImage && _streetViewImageUrl != null) {
+        print('Loading Street View image from: $_streetViewImageUrl');
+        // Test the URL by making a request
+        _testStreetViewUrl();
+      }
     });
+  }
+
+  void _testStreetViewUrl() async {
+    if (_streetViewImageUrl != null) {
+      try {
+        final response = await http.get(Uri.parse(_streetViewImageUrl!));
+        print('Street View API response status: ${response.statusCode}');
+        if (response.statusCode == 200) {
+          print('Street View image loaded successfully');
+        } else {
+          print('Street View API error: ${response.statusCode} - ${response.body}');
+        }
+      } catch (e) {
+        print('Error testing Street View URL: $e');
+      }
+    }
   }
 
   String _generateStreetViewUrl(LatLng location) {
@@ -782,11 +805,18 @@ class _MapScreenState extends State<MapScreen> {
                     // Street View Widget
                     if (_isStreetViewMode && _streetViewUrl != null)
                       Container(
-                        height: 200,
+                        height: 250,
                         margin: const EdgeInsets.all(8.0),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.grey),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
@@ -812,12 +842,28 @@ class _MapScreenState extends State<MapScreen> {
                                                    fit: BoxFit.cover,
                                                    loadingBuilder: (context, child, loadingProgress) {
                                                      if (loadingProgress == null) return child;
-                                                     return Center(
-                                                       child: CircularProgressIndicator(
-                                                         value: loadingProgress.expectedTotalBytes != null
-                                                             ? loadingProgress.cumulativeBytesLoaded /
-                                                                 loadingProgress.expectedTotalBytes!
-                                                             : null,
+                                                     return Container(
+                                                       color: Colors.grey[200],
+                                                       child: Center(
+                                                         child: Column(
+                                                           mainAxisAlignment: MainAxisAlignment.center,
+                                                           children: [
+                                                             CircularProgressIndicator(
+                                                               value: loadingProgress.expectedTotalBytes != null
+                                                                   ? loadingProgress.cumulativeBytesLoaded /
+                                                                       loadingProgress.expectedTotalBytes!
+                                                                   : null,
+                                                             ),
+                                                             const SizedBox(height: 8),
+                                                             Text(
+                                                               'Loading Street View...',
+                                                               style: TextStyle(
+                                                                 fontSize: 14,
+                                                                 color: Colors.grey[600],
+                                                               ),
+                                                             ),
+                                                           ],
+                                                         ),
                                                        ),
                                                      );
                                                    },
