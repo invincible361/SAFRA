@@ -193,6 +193,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     hint: AppLocalizations.of(context)!.email,
                     icon: Icons.person,
                     obscure: false,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email or username';
+                      }
+                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                        return 'Please enter a valid email address';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   // Password field
@@ -202,6 +211,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     hint: AppLocalizations.of(context)!.password,
                     icon: Icons.lock,
                     obscure: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty){
+                        return 'Please enter your password';
+                      }
+                      if (value.length < 8) {
+                        return 'Password must be atleast 8 characters long.';
+                      }
+                      if (!value.contains(RegExp(r'[!@#$%^&*()]'))) {
+                        return 'Password must contain at least one special character.';
+                      }
+                      if (!value.contains(RegExp(r'[a-zA-Z]'))) {
+                        return 'Password must conatin atleast one alphabet.';
+                      }
+                      if (value.runes.toSet().length != value.length) {
+                        return 'Password cannot contain repeating characters.';
+                      }
+                      return null;
+                  };
                   ),
                   const SizedBox(height: 10),
                   // Forgot Password link
