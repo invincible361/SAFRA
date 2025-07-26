@@ -51,3 +51,6 @@ app.*.map.json
 
 # Android configuration with API keys
 android/gradle.properties
+
+# iOS configuration with API keys
+ios/Runner/Config.swift
