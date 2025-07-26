@@ -41,6 +41,8 @@ class _MapScreenState extends State<MapScreen> {
   bool _isStreetViewMode = false;
   String? _streetViewUrl;
   LatLng? _streetViewLocation;
+  bool _showStreetViewImage = false;
+  String? _streetViewImageUrl;
 
   // Add these for web at the class level
   final TextEditingController _webSearchController = TextEditingController();
@@ -203,7 +205,19 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _streetViewLocation = location;
       _streetViewUrl = _generateStreetViewUrl(location);
+      _streetViewImageUrl = _generateStreetViewImageUrl(location);
       print('Street View URL generated: $_streetViewUrl');
+    });
+  }
+
+  String _generateStreetViewImageUrl(LatLng location) {
+    // Generate Street View static image URL
+    return 'https://maps.googleapis.com/maps/api/streetview?size=400x300&location=${location.latitude},${location.longitude}&key=$googleApiKey&heading=210&pitch=10&fov=90';
+  }
+
+  void _loadStreetViewImage() {
+    setState(() {
+      _showStreetViewImage = !_showStreetViewImage;
     });
   }
 
@@ -778,48 +792,132 @@ class _MapScreenState extends State<MapScreen> {
                           borderRadius: BorderRadius.circular(12),
                           child: Stack(
                             children: [
-                                                            // Street View iframe or image
+                                                            // Embedded Street View
                               Container(
                                 width: double.infinity,
                                 height: double.infinity,
-                                color: Colors.grey[300],
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Stack(
                                     children: [
-                                      Icon(
-                                        Icons.streetview,
-                                        size: 48,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Street View',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      ElevatedButton.icon(
-                                        onPressed: _openStreetView,
-                                        icon: const Icon(Icons.open_in_new),
-                                        label: const Text('Open in Maps'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                      ),
+                                                                             // Street View content
+                                       _showStreetViewImage && _streetViewImageUrl != null
+                                           ? Container(
+                                               width: double.infinity,
+                                               height: double.infinity,
+                                               child: ClipRRect(
+                                                 borderRadius: BorderRadius.circular(8),
+                                                 child: Image.network(
+                                                   _streetViewImageUrl!,
+                                                   fit: BoxFit.cover,
+                                                   loadingBuilder: (context, child, loadingProgress) {
+                                                     if (loadingProgress == null) return child;
+                                                     return Center(
+                                                       child: CircularProgressIndicator(
+                                                         value: loadingProgress.expectedTotalBytes != null
+                                                             ? loadingProgress.cumulativeBytesLoaded /
+                                                                 loadingProgress.expectedTotalBytes!
+                                                             : null,
+                                                       ),
+                                                     );
+                                                   },
+                                                   errorBuilder: (context, error, stackTrace) {
+                                                     return Container(
+                                                       color: Colors.grey[300],
+                                                       child: Center(
+                                                         child: Column(
+                                                           mainAxisAlignment: MainAxisAlignment.center,
+                                                           children: [
+                                                             Icon(
+                                                               Icons.error,
+                                                               size: 48,
+                                                               color: Colors.red[600],
+                                                             ),
+                                                             const SizedBox(height: 8),
+                                                             Text(
+                                                               'Failed to load Street View',
+                                                               style: TextStyle(
+                                                                 fontSize: 16,
+                                                                 fontWeight: FontWeight.bold,
+                                                                 color: Colors.red[600],
+                                                               ),
+                                                             ),
+                                                             const SizedBox(height: 4),
+                                                             Text(
+                                                               'No Street View available at this location',
+                                                               style: TextStyle(
+                                                                 fontSize: 12,
+                                                                 color: Colors.grey[600],
+                                                               ),
+                                                               textAlign: TextAlign.center,
+                                                             ),
+                                                           ],
+                                                         ),
+                                                       ),
+                                                     );
+                                                   },
+                                                 ),
+                                               ),
+                                             )
+                                           : Container(
+                                               width: double.infinity,
+                                               height: double.infinity,
+                                               color: Colors.grey[300],
+                                               child: Center(
+                                                 child: Column(
+                                                   mainAxisAlignment: MainAxisAlignment.center,
+                                                   children: [
+                                                     Icon(
+                                                       Icons.streetview,
+                                                       size: 48,
+                                                       color: Colors.grey[600],
+                                                     ),
+                                                     const SizedBox(height: 8),
+                                                     Text(
+                                                       'Street View',
+                                                       style: TextStyle(
+                                                         fontSize: 18,
+                                                         fontWeight: FontWeight.bold,
+                                                         color: Colors.grey[600],
+                                                       ),
+                                                     ),
+                                                     const SizedBox(height: 4),
+                                                     Text(
+                                                       'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
+                                                       style: TextStyle(
+                                                         fontSize: 12,
+                                                         color: Colors.grey[600],
+                                                       ),
+                                                       textAlign: TextAlign.center,
+                                                     ),
+                                                     const SizedBox(height: 12),
+                                                     Row(
+                                                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                       children: [
+                                                         ElevatedButton.icon(
+                                                           onPressed: _openStreetView,
+                                                           icon: const Icon(Icons.open_in_new),
+                                                           label: const Text('Open in Maps'),
+                                                           style: ElevatedButton.styleFrom(
+                                                             backgroundColor: Colors.blue,
+                                                             foregroundColor: Colors.white,
+                                                           ),
+                                                         ),
+                                                         ElevatedButton.icon(
+                                                           onPressed: _loadStreetViewImage,
+                                                           icon: const Icon(Icons.image),
+                                                           label: const Text('Show Image'),
+                                                           style: ElevatedButton.styleFrom(
+                                                             backgroundColor: Colors.green,
+                                                             foregroundColor: Colors.white,
+                                                           ),
+                                                         ),
+                                                       ],
+                                                     ),
+                                                   ],
+                                                 ),
+                                               ),
+                                             ),
                                     ],
                                   ),
                                 ),
