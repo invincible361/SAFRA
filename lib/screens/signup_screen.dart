@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:safra_app/screens/otpverity_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -18,6 +19,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   String? selectedGovId;
   bool termsAccepted = false;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   final List<String> govIdTypes = [
     'PAN Card',
@@ -126,8 +129,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       controller: idNumberController,
                       decoration: _inputDecoration('ID Number'),
                       style: const TextStyle(color: Colors.white),
-                      validator: (value) =>
-                      value == null || value.isEmpty ? 'Required' : null,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Required';
+                        if (selectedGovId == 'Aadhar Card') {
+                          final aadharRegex = RegExp(r'^\d{12}');
+                          if (!aadharRegex.hasMatch(value)) return 'Enter a valid 12-digit Aadhar number';
+                        }
+                        return null;
+                      },
                     ),
                   const SizedBox(height: 24),
 
@@ -157,23 +166,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isFormComplete()
-                          ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => OtpScreen(
-                              fullName: fullNameController.text,
-                            ),
-                          ),
-                        );
-                      }
+                      onPressed: _isFormComplete() && !_isLoading
+                          ? () async {
+                              setState(() {
+                                _isLoading = true;
+                                _errorMessage = null;
+                              });
+                              final email = emailController.text.trim();
+                              final password = phoneController.text.trim() + 'A@123'; // temp password
+                              try {
+                                final response = await Supabase.instance.client.auth.signUp(
+                                  email: email,
+                                  password: password,
+                                );
+                                if (response.user != null) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => OtpScreen(
+                                        fullName: fullNameController.text,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  setState(() {
+                                    _errorMessage = 'Signup failed. Please try again.';
+                                  });
+                                }
+                              } catch (e) {
+                                setState(() {
+                                  _errorMessage = e.toString();
+                                });
+                              } finally {
+                                setState(() {
+                                  _isLoading = false;
+                                });
+                              }
+                            }
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _isFormComplete()
+                        backgroundColor: _isFormComplete() && !_isLoading
                             ? const Color(0xFFCAE3F2)
                             : const Color(0xFF2A2E32),
-                        foregroundColor: _isFormComplete()
+                        foregroundColor: _isFormComplete() && !_isLoading
                             ? Colors.black
                             : Colors.white54,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -181,9 +216,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('Register'),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Register'),
                     ),
                   ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                 ],
               ),
@@ -230,8 +278,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
       decoration: _inputDecoration(label),
       keyboardType: inputType,
       style: const TextStyle(color: Colors.white),
-      validator: (value) =>
-      value == null || value.isEmpty ? 'This field is required' : null,
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'This field is required';
+        if (label == 'Email') {
+          final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+');
+          if (!emailRegex.hasMatch(value)) return 'Enter a valid email';
+        }
+        if (label == 'Phone Number') {
+          final phoneRegex = RegExp(r'^\d{10}');
+          if (!phoneRegex.hasMatch(value)) return 'Enter a valid 10-digit phone number';
+        }
+        if (label == 'ID Number' && selectedGovId == 'Aadhar Card') {
+          final aadharRegex = RegExp(r'^\d{12}');
+          if (!aadharRegex.hasMatch(value)) return 'Enter a valid 12-digit Aadhar number';
+        }
+        return null;
+      },
     );
   }
 }
+

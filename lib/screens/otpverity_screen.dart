@@ -80,7 +80,7 @@ class _OtpScreenState extends State<OtpScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: const BackButton(color: Colors.white),
-        title: const Text('OTP Verification'),
+        title: const Text('Email Verification'),
         centerTitle: true,
       ),
       body: Padding(
@@ -101,7 +101,6 @@ class _OtpScreenState extends State<OtpScreen> {
               ),
             ),
             const SizedBox(height: 40),
-
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -112,7 +111,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Enter OTP',
+                    'Check your email',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -121,90 +120,30 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'A 6-digit code has been sent to your mobile number.',
+                    'A confirmation link has been sent to your email address. Please check your inbox and click the link to verify your account.',
                     style: TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 24),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(
-                      6,
-                          (index) => SizedBox(
-                        width: 45,
-                        child: TextField(
-                          controller: otpControllers[index],
-                          maxLength: 1,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 18),
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            counterText: '',
-                            filled: true,
-                            fillColor: const Color(0xFF2A2E32),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          onChanged: (val) {
-                            setState(() {});
-                            if (val.isNotEmpty && index < 5) {
-                              FocusScope.of(context).nextFocus();
-                            }
-                          },
-                        ),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      // Try to open the default email app
+                      // (This is a placeholder, as actual implementation may require a package like url_launcher)
+                    },
+                    icon: const Icon(Icons.email),
+                    label: const Text('Open Email App'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCAE3F2),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  _resendAvailable
-                      ? TextButton(
-                    onPressed: _resendOtp,
-                    child: const Text(
-                      'Resend OTP',
-                      style: TextStyle(color: Color(0xFFCAE3F2)),
-                    ),
-                  )
-                      : Text(
-                    'Resend OTP in 00:${_secondsRemaining.toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: Colors.white60),
-                  ),
-                  const SizedBox(height: 32),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isOtpComplete()
-                          ? () {
-                        final otp =
-                        otpControllers.map((c) => c.text).join();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SetPasswordScreen(
-                              fullName: widget.fullName,
-                            ),
-                          ),
-                        );
-                      }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isOtpComplete()
-                            ? const Color(0xFFCAE3F2)
-                            : const Color(0xFF2A2E32),
-                        foregroundColor: _isOtpComplete()
-                            ? Colors.black
-                            : Colors.white54,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('Verify'),
-                    ),
+                  const Text(
+                    'Didn\'t receive the email? Check your spam folder or try registering again.',
+                    style: TextStyle(color: Colors.white60, fontSize: 13),
                   ),
                 ],
               ),

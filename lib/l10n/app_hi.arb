@@ -1,0 +1,11 @@
+{
+  "appTitle": "साफ्रा ऐप",
+  "welcome": "वापसी पर स्वागत है",
+  "login": "लॉगिन",
+  "email": "ईमेल",
+  "password": "पासवर्ड",
+  "signInWithGoogle": "गूगल से साइन इन करें",
+  "signInWithApple": "एप्पल से साइन इन करें",
+  "dontHaveAccount": "क्या आपके पास खाता नहीं है?",
+  "getStarted": "शुरू करें"
+} 

@@ -1,8 +1,145 @@
 import 'package:flutter/material.dart';
 import 'package:safra_app/screens/signup_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:safra_app/screens/map_screen.dart';
+import 'package:flutter/foundation.dart';
+import '../l10n/app_localizations.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      final session = data.session;
+      if (event == AuthChangeEvent.signedIn && session != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MapScreen()),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = AppLocalizations.of(context)!.email;
+      });
+      return;
+    }
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      if (response.user == null) {
+        setState(() {
+          _errorMessage = AppLocalizations.of(context)!.login;
+        });
+      } else {
+        // TODO: Navigate to the next screen after successful login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MapScreen()),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _signInWithProvider(Provider provider) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        provider,
+        redirectTo: kIsWeb ? Uri.base.origin : 'io.supabase.flutter://login-callback',
+      );
+      // On mobile, the user will be redirected back to the app after sign-in
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _sendPasswordResetEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = AppLocalizations.of(context)!.email;
+      });
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.login),
+          content: Text(AppLocalizations.of(context)!.getStarted),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +176,6 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 28),
-
                   // Title
                   const Text(
                     "Welcome Back",
@@ -50,43 +186,41 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   // Username/email field
                   _buildInputField(
                     context,
-                    hint: 'Username or Email',
+                    controller: _emailController,
+                    hint: AppLocalizations.of(context)!.email,
                     icon: Icons.person,
                     obscure: false,
                   ),
                   const SizedBox(height: 16),
-
                   // Password field
                   _buildInputField(
                     context,
-                    hint: 'Password',
+                    controller: _passwordController,
+                    hint: AppLocalizations.of(context)!.password,
                     icon: Icons.lock,
                     obscure: true,
                   ),
                   const SizedBox(height: 10),
-
                   // Forgot Password link
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: _isLoading ? null : _sendPasswordResetEmail,
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white70,
                       ),
-                      child: const Text("Forgot Password?"),
+                      child: Text(AppLocalizations.of(context)!.password),
                     ),
                   ),
                   const SizedBox(height: 16),
-
                   // Login Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFCAE3F2),
                         foregroundColor: Colors.black,
@@ -95,24 +229,74 @@ class LoginScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              AppLocalizations.of(context)!.login,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  // OAuth Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : () => _signInWithProvider(Provider.google),
+                          icon: Image.asset('assets/logo.png', height: 20), // Replace with Google logo asset
+                          label: Text(AppLocalizations.of(context)!.signInWithGoogle),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : () => _signInWithProvider(Provider.apple),
+                          icon: const Icon(Icons.apple),
+                          label: Text(AppLocalizations.of(context)!.signInWithApple),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
                   const SizedBox(height: 24),
-
                   // Sign Up link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Don't have an account?",
-                        style: TextStyle(color: Colors.white60),
+                      Text(
+                        AppLocalizations.of(context)!.dontHaveAccount,
+                        style: const TextStyle(color: Colors.white60),
                       ),
                       TextButton(
                         onPressed: () {
@@ -126,7 +310,7 @@ class LoginScreen extends StatelessWidget {
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFFCAE3F2),
                         ),
-                        child: const Text("Let's Get Started"),
+                        child: Text(AppLocalizations.of(context)!.getStarted),
                       ),
                     ],
                   ),
@@ -140,10 +324,12 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildInputField(BuildContext context,
-      {required String hint,
-        required IconData icon,
-        required bool obscure}) {
+      {required TextEditingController controller,
+      required String hint,
+      required IconData icon,
+      required bool obscure}) {
     return TextFormField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         hintText: hint,

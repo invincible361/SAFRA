@@ -1,0 +1,11 @@
+{
+  "appTitle": "SAFRA App",
+  "welcome": "Welcome Back",
+  "login": "Login",
+  "email": "Email",
+  "password": "Password",
+  "signInWithGoogle": "Sign in with Google",
+  "signInWithApple": "Sign in with Apple",
+  "dontHaveAccount": "Don't have an account?",
+  "getStarted": "Let's Get Started"
+} 
