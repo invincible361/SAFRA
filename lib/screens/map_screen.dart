@@ -803,7 +803,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
                                 ),
                     // Street View Widget
-                    if (_isStreetViewMode && _streetViewUrl != null)
+                    if (_isStreetViewMode && _streetViewUrl != null) ...[
                       Container(
                         height: 250,
                         margin: const EdgeInsets.all(8.0),
@@ -822,7 +822,7 @@ class _MapScreenState extends State<MapScreen> {
                           borderRadius: BorderRadius.circular(12),
                           child: Stack(
                             children: [
-                                                            // Embedded Street View
+                              // Embedded Street View
                               Container(
                                 width: double.infinity,
                                 height: double.infinity,
@@ -830,142 +830,141 @@ class _MapScreenState extends State<MapScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                   child: Stack(
                                     children: [
-                                                                             // Street View content
-                                       _showStreetViewImage && _streetViewImageUrl != null
-                                           ? Container(
-                                               width: double.infinity,
-                                               height: double.infinity,
-                                               child: ClipRRect(
-                                                 borderRadius: BorderRadius.circular(8),
-                                                 child: Image.network(
-                                                   _streetViewImageUrl!,
-                                                   fit: BoxFit.cover,
-                                                   loadingBuilder: (context, child, loadingProgress) {
-                                                     if (loadingProgress == null) return child;
-                                                     return Container(
-                                                       color: Colors.grey[200],
-                                                       child: Center(
-                                                         child: Column(
-                                                           mainAxisAlignment: MainAxisAlignment.center,
-                                                           children: [
-                                                             CircularProgressIndicator(
-                                                               value: loadingProgress.expectedTotalBytes != null
-                                                                   ? loadingProgress.cumulativeBytesLoaded /
-                                                                       loadingProgress.expectedTotalBytes!
-                                                                   : null,
-                                                             ),
-                                                             const SizedBox(height: 8),
-                                                             Text(
-                                                               'Loading Street View...',
-                                                               style: TextStyle(
-                                                                 fontSize: 14,
-                                                                 color: Colors.grey[600],
-                                                               ),
-                                                             ),
-                                                           ],
-                                                         ),
-                                                       ),
-                                                     );
-                                                   },
-                                                   errorBuilder: (context, error, stackTrace) {
-                                                     return Container(
-                                                       color: Colors.grey[300],
-                                                       child: Center(
-                                                         child: Column(
-                                                           mainAxisAlignment: MainAxisAlignment.center,
-                                                           children: [
-                                                             Icon(
-                                                               Icons.error,
-                                                               size: 48,
-                                                               color: Colors.red[600],
-                                                             ),
-                                                             const SizedBox(height: 8),
-                                                             Text(
-                                                               'Failed to load Street View',
-                                                               style: TextStyle(
-                                                                 fontSize: 16,
-                                                                 fontWeight: FontWeight.bold,
-                                                                 color: Colors.red[600],
-                                                               ),
-                                                             ),
-                                                             const SizedBox(height: 4),
-                                                             Text(
-                                                               'No Street View available at this location',
-                                                               style: TextStyle(
-                                                                 fontSize: 12,
-                                                                 color: Colors.grey[600],
-                                                               ),
-                                                               textAlign: TextAlign.center,
-                                                             ),
-                                                           ],
-                                                         ),
-                                                       ),
-                                                     );
-                                                   },
-                                                 ),
-                                               ),
-                                             )
-                                           : Container(
-                                               width: double.infinity,
-                                               height: double.infinity,
-                                               color: Colors.grey[300],
-                                               child: Center(
-                                                 child: Column(
-                                                   mainAxisAlignment: MainAxisAlignment.center,
-                                                   children: [
-                                                     Icon(
-                                                       Icons.streetview,
-                                                       size: 48,
-                                                       color: Colors.grey[600],
-                                                     ),
-                                                     const SizedBox(height: 8),
-                                                     Text(
-                                                       'Street View',
-                                                       style: TextStyle(
-                                                         fontSize: 18,
-                                                         fontWeight: FontWeight.bold,
-                                                         color: Colors.grey[600],
-                                                       ),
-                                                     ),
-                                                     const SizedBox(height: 4),
-                                                     Text(
-                                                       'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
-                                                       style: TextStyle(
-                                                         fontSize: 12,
-                                                         color: Colors.grey[600],
-                                                       ),
-                                                       textAlign: TextAlign.center,
-                                                     ),
-                                                     const SizedBox(height: 12),
-                                                     Row(
-                                                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                       children: [
-                                                         ElevatedButton.icon(
-                                                           onPressed: _openStreetView,
-                                                           icon: const Icon(Icons.open_in_new),
-                                                           label: const Text('Open in Maps'),
-                                                           style: ElevatedButton.styleFrom(
-                                                             backgroundColor: Colors.blue,
-                                                             foregroundColor: Colors.white,
-                                                           ),
-                                                         ),
-                                                         ElevatedButton.icon(
-                                                           onPressed: _loadStreetViewImage,
-                                                           icon: const Icon(Icons.image),
-                                                           label: const Text('Show Image'),
-                                                           style: ElevatedButton.styleFrom(
-                                                             backgroundColor: Colors.green,
-                                                             foregroundColor: Colors.white,
-                                                           ),
-                                                         ),
-                                                       ],
-                                                     ),
-                                                   ],
-                                                 ),
-                                               ),
-                                             ),
-                                    ],
-                                  ),
+                                      // Street View content
+                                      _showStreetViewImage && _streetViewImageUrl != null
+                                          ? Container(
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  _streetViewImageUrl!,
+                                                  fit: BoxFit.cover,
+                                                  loadingBuilder: (context, child, loadingProgress) {
+                                                    if (loadingProgress == null) return child;
+                                                    return Container(
+                                                      color: Colors.grey[200],
+                                                      child: Center(
+                                                        child: Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            CircularProgressIndicator(
+                                                              value: loadingProgress.expectedTotalBytes != null
+                                                                  ? loadingProgress.cumulativeBytesLoaded /
+                                                                      loadingProgress.expectedTotalBytes!
+                                                                  : null,
+                                                            ),
+                                                            const SizedBox(height: 8),
+                                                            Text(
+                                                              'Loading Street View...',
+                                                              style: TextStyle(
+                                                                fontSize: 14,
+                                                                color: Colors.grey[600],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Container(
+                                                      color: Colors.grey[300],
+                                                      child: Center(
+                                                        child: Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            Icon(
+                                                              Icons.error,
+                                                              size: 48,
+                                                              color: Colors.red[600],
+                                                            ),
+                                                            const SizedBox(height: 8),
+                                                            Text(
+                                                              'Failed to load Street View',
+                                                              style: TextStyle(
+                                                                fontSize: 16,
+                                                                fontWeight: FontWeight.bold,
+                                                                color: Colors.red[600],
+                                                              ),
+                                                            ),
+                                                            const SizedBox(height: 4),
+                                                            Text(
+                                                              'No Street View available at this location',
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.grey[600],
+                                                              ),
+                                                              textAlign: TextAlign.center,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            )
+                                          : Container(
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              color: Colors.grey[300],
+                                              child: Center(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.streetview,
+                                                      size: 48,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      'Street View',
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.grey[600],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey[600],
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                      children: [
+                                                        ElevatedButton.icon(
+                                                          onPressed: _openStreetView,
+                                                          icon: const Icon(Icons.open_in_new),
+                                                          label: const Text('Open in Maps'),
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: Colors.blue,
+                                                            foregroundColor: Colors.white,
+                                                          ),
+                                                        ),
+                                                        ElevatedButton.icon(
+                                                          onPressed: _loadStreetViewImage,
+                                                          icon: const Icon(Icons.image),
+                                                          label: const Text('Show Image'),
+                                                          style: ElevatedButton.styleFrom(
+                                                            backgroundColor: Colors.green,
+                                                            foregroundColor: Colors.white,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                  ],
                                 ),
                               ),
                               // Close button
@@ -992,6 +991,27 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
+                    ] else if (_isStreetViewMode) ...[
+                      // Debug: Show when Street View mode is on but no URL
+                      Container(
+                        height: 100,
+                        margin: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red),
+                          color: Colors.red[100],
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Debug: Street View mode is ON but no URL available\n'
+                            'Current location: $_currentLatLng\n'
+                            'Street View URL: $_streetViewUrl',
+                            style: TextStyle(color: Colors.red[800]),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                                         ],
                     if (_navigationSteps.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
