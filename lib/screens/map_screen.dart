@@ -803,7 +803,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
                                 ),
                     // Street View Widget
-                    if (_isStreetViewMode && _streetViewUrl != null) ...[
+                    if (_isStreetViewMode && _streetViewUrl != null)
                       Container(
                         height: 250,
                         margin: const EdgeInsets.all(8.0),
@@ -964,7 +964,8 @@ class _MapScreenState extends State<MapScreen> {
                                                 ),
                                               ),
                                             ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                               // Close button
@@ -991,27 +992,6 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
-                    ] else if (_isStreetViewMode) ...[
-                      // Debug: Show when Street View mode is on but no URL
-                      Container(
-                        height: 100,
-                        margin: const EdgeInsets.all(8.0),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red),
-                          color: Colors.red[100],
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Debug: Street View mode is ON but no URL available\n'
-                            'Current location: $_currentLatLng\n'
-                            'Street View URL: $_streetViewUrl',
-                            style: TextStyle(color: Colors.red[800]),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                                         ],
                     if (_navigationSteps.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
