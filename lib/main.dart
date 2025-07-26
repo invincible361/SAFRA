@@ -12,6 +12,13 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: "assets/.env");
     print("Successfully loaded .env file");
+    // Test if we can access the API key
+    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
+    if (apiKey != null && apiKey.isNotEmpty) {
+      print("API key loaded successfully: ${apiKey.substring(0, 10)}...");
+    } else {
+      print("Warning: API key is empty or null");
+    }
   } catch (e) {
     print("Warning: Could not load .env file: $e");
     print("Make sure to create a .env file in the assets folder");
