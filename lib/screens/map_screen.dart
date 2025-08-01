@@ -7,8 +7,19 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
+import '../services/biometric_service.dart';
+import '../services/app_lifecycle_service.dart';
+import '../l10n/app_localizations.dart';
+import '../widgets/language_selector.dart';
+import '../widgets/sms_share_widget.dart';
 import 'street_view_screen.dart';
+import 'login_screen.dart';
+import 'security_setup_screen.dart';
+import 'place_search_screen.dart';
+import 'ai_route_selection_screen.dart';
+import '../services/ai_route_service.dart';
 // Add flutter_map and latlong2 for web
 import 'package:flutter_map/flutter_map.dart' as fm;
 import 'package:latlong2/latlong.dart' as latlng;
@@ -64,6 +75,57 @@ class _MapScreenState extends State<MapScreen> {
   final ValueNotifier<List<Map<String, dynamic>>> _webToSuggestions = ValueNotifier([]);
   final ValueNotifier<bool> _webShowFromSuggestions = ValueNotifier(false);
   final ValueNotifier<bool> _webShowToSuggestions = ValueNotifier(false);
+
+  // Sign out method
+  Future<void> _signOut() async {
+    // Show confirmation dialog
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(localizations?.signOut ?? 'Sign Out'),
+          content: Text('${localizations?.pleaseAuthenticate ?? 'Please authenticate'}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(localizations?.cancel ?? 'Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(localizations?.signOut ?? 'Sign Out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSignOut == true) {
+      try {
+        // Set authentication status to false
+        AppLifecycleService().setAuthenticated(false);
+        await Supabase.instance.client.auth.signOut();
+        print('User signed out successfully');
+        // Navigate to login screen and clear the navigation stack
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false, // This removes all previous routes from the stack
+        );
+      } catch (e) {
+        print('Error signing out: $e');
+        // Show error message if sign out fails
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error signing out: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
 
   // Move these methods to the class level
   Future<void> _webFetchFromSuggestions(String query) async {
@@ -136,18 +198,32 @@ class _MapScreenState extends State<MapScreen> {
       _error = null;
     });
     try {
+      // Check if location service is enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _error = 'Location services are disabled. Please enable location services.';
+          _loading = false;
+        });
+        return;
+      }
+
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.deniedForever || permission == LocationPermission.denied) {
         setState(() {
-          _error = 'Location permissions are denied.';
+          _error = 'Location permissions are denied. Please enable location permissions in settings.';
           _loading = false;
         });
         return;
       }
-      final position = await Geolocator.getCurrentPosition();
+      
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
       _updateUserMarker(position);
       setState(() {
         _currentLatLng = LatLng(position.latitude, position.longitude);
@@ -158,35 +234,52 @@ class _MapScreenState extends State<MapScreen> {
         _loading = false;
       });
       _positionStream = Geolocator.getPositionStream();
-      _positionStream!.listen((pos) {
-        _updateUserMarker(pos);
-        setState(() {
-          _currentLatLng = LatLng(pos.latitude, pos.longitude);
-        });
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(LatLng(pos.latitude, pos.longitude)),
-        );
-        if (_destinationMarker != null) {
-          _drawRoute(_currentLatLng!, _destinationMarker!.position);
-        }
-      });
+      _positionStream?.listen(
+        (pos) {
+          if (mounted) {
+            _updateUserMarker(pos);
+            setState(() {
+              _currentLatLng = LatLng(pos.latitude, pos.longitude);
+            });
+            _mapController?.animateCamera(
+              CameraUpdate.newLatLng(LatLng(pos.latitude, pos.longitude)),
+            );
+            if (_destinationMarker != null && _currentLatLng != null) {
+              _drawRoute(_currentLatLng!, _destinationMarker!.position);
+            }
+          }
+        },
+        onError: (error) {
+          print('Location stream error: $error');
+          // Don't show error to user for stream errors, just log them
+        },
+      );
     } catch (e) {
+      print('Location error: $e');
+      // Set a default location (e.g., Bangalore) if location services fail
       setState(() {
-        _error = 'Failed to get location: $e';
+        _error = 'Location services unavailable. Using default location.';
+        _currentLatLng = const LatLng(12.9716, 77.5946); // Bangalore coordinates
+        _initialPosition = const CameraPosition(
+          target: LatLng(12.9716, 77.5946),
+          zoom: 15,
+        );
         _loading = false;
       });
     }
   }
 
   void _updateUserMarker(Position pos) {
-    setState(() {
-      _userMarker = Marker(
-        markerId: const MarkerId('user_location'),
-        position: LatLng(pos.latitude, pos.longitude),
-        infoWindow: const InfoWindow(title: 'You are here'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-      );
-    });
+    if (mounted) {
+      setState(() {
+        _userMarker = Marker(
+          markerId: const MarkerId('user_location'),
+          position: LatLng(pos.latitude, pos.longitude),
+          infoWindow: const InfoWindow(title: 'You are here'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        );
+      });
+    }
   }
 
   // Street View methods
@@ -358,6 +451,115 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  void _openPlaceSearch() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PlaceSearchScreen(
+          initialQuery: _destinationController.text.isNotEmpty ? _destinationController.text : null,
+          onPlaceSelected: (placeDetails) {
+            _handlePlaceSelected(placeDetails);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _handlePlaceSelected(Map<String, dynamic> placeDetails) {
+    final geometry = placeDetails['geometry'];
+    if (geometry != null && geometry['location'] != null) {
+      final location = geometry['location'];
+      final lat = location['lat'] as double;
+      final lng = location['lng'] as double;
+      final dest = LatLng(lat, lng);
+      
+      setState(() {
+        _destinationController.text = placeDetails['name'] ?? placeDetails['formatted_address'] ?? '';
+        _destinationMarker = Marker(
+          markerId: const MarkerId('destination'),
+          position: dest,
+          infoWindow: InfoWindow(
+            title: placeDetails['name'] ?? 'Destination',
+            snippet: placeDetails['formatted_address'],
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        );
+      });
+      
+      _mapController?.animateCamera(CameraUpdate.newLatLng(dest));
+      if (_currentLatLng != null) {
+        _drawRoute(_currentLatLng!, dest);
+      }
+    }
+  }
+
+  void _openInMaps() async {
+    if (_currentLatLng != null && _destinationMarker != null) {
+      final startLat = _currentLatLng!.latitude;
+      final startLng = _currentLatLng!.longitude;
+      final endLat = _destinationMarker!.position.latitude;
+      final endLng = _destinationMarker!.position.longitude;
+      
+      // Open in Google Maps
+      final url = 'https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$endLat,$endLng&travelmode=driving';
+      
+      try {
+        if (await canLaunchUrl(Uri.parse(url))) {
+          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open Google Maps')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening maps: $e')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please set a destination first')),
+      );
+    }
+  }
+
+  void _clearNavigation() {
+    setState(() {
+      _destinationMarker = null;
+      _routePolyline = null;
+      _navigationSteps.clear();
+      _currentStepIndex = 0;
+      _destinationController.clear();
+      _suggestions.clear();
+      _showSuggestions = false;
+    });
+    
+    // Reset camera to current location
+    if (_currentLatLng != null) {
+      _mapController?.animateCamera(CameraUpdate.newLatLng(_currentLatLng!));
+    }
+    
+    Navigator.of(context).pop(); // Close the navigation modal
+  }
+
+  void _loadStreetViewForDestination() async {
+    if (_destinationMarker != null) {
+      final lat = _destinationMarker!.position.latitude;
+      final lng = _destinationMarker!.position.longitude;
+      
+      try {
+        final apiKey = ApiConfig.googleMapsApiKey;
+        final url = 'https://maps.googleapis.com/maps/api/streetview?size=400x300&location=$lat,$lng&key=$apiKey';
+        
+        setState(() {
+          _streetViewUrl = url;
+          _streetViewLocation = _destinationMarker!.position;
+        });
+      } catch (e) {
+        print('Error loading street view: $e');
+      }
+    }
+  }
+
   Future<void> _drawRoute(LatLng start, LatLng end) async {
     final url = Uri.parse(
       'https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${end.latitude},${end.longitude}&key=$googleApiKey',
@@ -470,48 +672,373 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  void _openGoogleMapsNavigation() {
+    if (_destinationMarker != null) {
+      final destination = _destinationMarker!.position;
+      final currentLocation = _currentLatLng ?? const LatLng(0, 0);
+      
+      // Create Google Maps navigation URL
+      final url = 'https://www.google.com/maps/dir/?api=1&origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destination.latitude},${destination.longitude}&travelmode=driving';
+      
+      // Launch Google Maps
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _openAIRouteSelection() async {
+    if (_destinationMarker != null) {
+      final destination = _destinationMarker!.position;
+      final currentLocation = _currentLatLng ?? const LatLng(0, 0);
+      
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AIRouteSelectionScreen(
+            origin: currentLocation,
+            destination: destination,
+            destinationName: _destinationController.text,
+          ),
+        ),
+      );
+      
+      if (result != null && result is RouteOption) {
+        // Handle selected AI route
+        _handleSelectedAIRoute(result);
+      }
+    }
+  }
+
+  void _handleSelectedAIRoute(RouteOption route) {
+    // Update the map with the selected AI route
+    setState(() {
+      _routePoints = route.routePoints;
+      _navigationSteps = _convertRouteToSteps(route);
+    });
+    
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Selected: ${route.name}'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _convertRouteToSteps(RouteOption route) {
+    // Convert AI route to navigation steps format
+    return [
+      {
+        'instruction': 'Start from your current location',
+        'distance': '0 km',
+        'duration': '0 min',
+      },
+      {
+        'instruction': 'Follow ${route.name}',
+        'distance': '${route.distance.toStringAsFixed(1)} km',
+        'duration': '${route.duration} min',
+      },
+      {
+        'instruction': 'Arrive at destination',
+        'distance': '0 km',
+        'duration': '0 min',
+      },
+    ];
+  }
+
   void _showNavigationModal() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SizedBox(
-          height: 300,
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Color(0xFF111416),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('Navigation Guidance', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _navigationSteps.length,
-                  itemBuilder: (context, index) {
-                    final step = _navigationSteps[index];
-                    return ListTile(
-                      leading: Text('${index + 1}'),
-                      title: Text(step['instruction'] ?? ''),
-                      subtitle: Text(step['distance'] ?? ''),
-                      selected: index == _currentStepIndex,
-                    );
-                  },
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: _currentStepIndex > 0
-                        ? () => setState(() => _currentStepIndex--)
-                        : null,
-                    child: const Text('Previous'),
+              
+              // Route Progress Header
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                                         Text(
+                       AppLocalizations.of(context)?.routeProgress ?? 'ROUTE PROGRESS',
+                       style: const TextStyle(
+                         fontWeight: FontWeight.bold,
+                         fontSize: 16,
+                         color: Colors.black,
+                       ),
+                     ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                                                 Text(
+                           AppLocalizations.of(context)?.currentLocation ?? 'Current Location',
+                           style: const TextStyle(
+                             color: Colors.black,
+                             fontWeight: FontWeight.w500,
+                           ),
+                         ),
+                         Text(
+                           AppLocalizations.of(context)?.destination ?? 'Destination',
+                           style: const TextStyle(
+                             color: Colors.black,
+                             fontWeight: FontWeight.w500,
+                           ),
+                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                                         Text(
+                       '${AppLocalizations.of(context)?.steps ?? 'Steps'} ${_currentStepIndex + 1}/${_navigationSteps.length}',
+                       style: const TextStyle(
+                         color: Colors.black,
+                         fontSize: 14,
+                       ),
+                     ),
+                  ],
+                ),
+              ),
+              
+              // Navigation Content
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  ElevatedButton(
-                    onPressed: _currentStepIndex < _navigationSteps.length - 1
-                        ? () => setState(() => _currentStepIndex++)
-                        : null,
-                    child: const Text('Next'),
+                  child: Stack(
+                    children: [
+                      // Street View or Map Display
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: _isStreetViewMode && _streetViewUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  _streetViewUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Center(
+                                      child: Icon(
+                                        Icons.streetview,
+                                        size: 64,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.map,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                      ),
+                      
+                      // Navigation Controls
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: IconButton(
+                          onPressed: _currentStepIndex > 0
+                              ? () => setState(() => _currentStepIndex--)
+                              : null,
+                          icon: const Icon(Icons.arrow_back, color: Colors.black),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+                      
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: IconButton(
+                          onPressed: _currentStepIndex < _navigationSteps.length - 1
+                              ? () => setState(() => _currentStepIndex++)
+                              : null,
+                          icon: const Icon(Icons.arrow_forward, color: Colors.black),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+                      
+                      // Street View Toggle Button
+                      Positioned(
+                        right: 8,
+                        top: 60,
+                        child: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _isStreetViewMode = !_isStreetViewMode;
+                            });
+                            if (_isStreetViewMode && _destinationMarker != null) {
+                              _loadStreetViewForDestination();
+                            }
+                          },
+                          icon: Icon(
+                            _isStreetViewMode ? Icons.map : Icons.streetview,
+                            color: Colors.black,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+                      
+                      // Zoom Controls
+                      Positioned(
+                        right: 8,
+                        top: 120,
+                        child: Column(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                // Zoom in functionality
+                              },
+                              icon: const Icon(Icons.zoom_in, color: Colors.black),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.8),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                // Zoom out functionality
+                              },
+                              icon: const Icon(Icons.zoom_out, color: Colors.black),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+              
+              // Bottom Navigation Buttons
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Top Row: Previous/Next
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _currentStepIndex > 0
+                                ? () => setState(() => _currentStepIndex--)
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF87CEEB),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                                                         child: Text(
+                               AppLocalizations.of(context)?.previous ?? 'PREVIOUS',
+                               style: const TextStyle(
+                                 color: Colors.white,
+                                 fontWeight: FontWeight.bold,
+                               ),
+                             ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _currentStepIndex < _navigationSteps.length - 1
+                                ? () => setState(() => _currentStepIndex++)
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4169E1),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                                                         child: Text(
+                               AppLocalizations.of(context)?.next ?? 'NEXT',
+                               style: const TextStyle(
+                                 color: Colors.white,
+                                 fontWeight: FontWeight.bold,
+                               ),
+                             ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Bottom Row: Open in Maps/Clear
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _openInMaps,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                                                         child: Text(
+                               AppLocalizations.of(context)?.openInMaps ?? 'OPEN IN MAPS',
+                               style: const TextStyle(
+                                 color: Colors.white,
+                                 fontWeight: FontWeight.bold,
+                               ),
+                             ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _clearNavigation,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                                                         child: Text(
+                               AppLocalizations.of(context)?.clear ?? 'CLEAR',
+                               style: const TextStyle(
+                                 color: Colors.white,
+                                 fontWeight: FontWeight.bold,
+                               ),
+                             ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -588,7 +1115,29 @@ class _MapScreenState extends State<MapScreen> {
       }
 
       return Scaffold(
-        appBar: AppBar(title: const Text('Map')),
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)?.map ?? 'Map'),
+          actions: [
+            const LanguageSelector(),
+            IconButton(
+              icon: const Icon(Icons.security),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SecuritySetupScreen(),
+                  ),
+                );
+              },
+              tooltip: AppLocalizations.of(context)?.securitySettings ?? 'Security Settings',
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _signOut,
+              tooltip: AppLocalizations.of(context)?.signOut ?? 'Sign Out',
+            ),
+          ],
+        ),
         body: Column(
           children: [
             Padding(
@@ -1041,6 +1590,25 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Map'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.security),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SecuritySetupScreen(),
+                ),
+              );
+            },
+            tooltip: 'Security Settings',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _signOut,
+            tooltip: 'Sign Out',
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -1065,6 +1633,12 @@ class _MapScreenState extends State<MapScreen> {
                                   ),
                                   style: const TextStyle(color: Colors.black), // Make input text black
                                 ),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () => _openPlaceSearch(),
+                                icon: const Icon(Icons.search, color: Colors.blue),
+                                tooltip: 'Search Places',
                               ),
                             ],
                           ),
@@ -1119,16 +1693,155 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                             ),
                           ),
+                          // SMS Share Button
+                          Positioned(
+                            top: 16,
+                            left: 16,
+                            child: FloatingActionButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => SmsShareWidget(
+                                    currentLocation: _currentLatLng,
+                                    title: AppLocalizations.of(context)?.shareLocation ?? 'Share Location',
+                                  ),
+                                );
+                              },
+                              backgroundColor: Colors.green,
+                              child: const Icon(
+                                Icons.share_location,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          // Search Places Button
+                          Positioned(
+                            top: 80,
+                            left: 16,
+                            child: FloatingActionButton(
+                              onPressed: _openPlaceSearch,
+                              backgroundColor: const Color(0xFFCAE3F2),
+                              child: const Icon(
+                                Icons.search,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    if (_navigationSteps.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.navigation),
-                          label: const Text('Navigate'),
-                          onPressed: _showNavigationModal,
+                    if (_destinationMarker != null)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            // AI Route Selection Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _destinationMarker != null ? _openAIRouteSelection : null,
+                                icon: const Icon(Icons.psychology, color: Colors.white),
+                                label: Text(
+                                  '🤖 AI Route Selection',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _destinationMarker != null 
+                                      ? const Color(0xFF9C27B0) 
+                                      : Colors.grey,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // Navigation Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _destinationMarker != null ? _openGoogleMapsNavigation : null,
+                                icon: const Icon(Icons.navigation, color: Colors.white),
+                                label: Text(
+                                  AppLocalizations.of(context)?.startNavigation ?? 'Start Navigation',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _destinationMarker != null 
+                                      ? const Color(0xFF4169E1) 
+                                      : Colors.grey,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // Detailed Navigation Button (if route is calculated)
+                            if (_navigationSteps.isNotEmpty)
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: _showNavigationModal,
+                                  icon: const Icon(Icons.directions, color: Colors.white),
+                                  label: Text(
+                                    AppLocalizations.of(context)?.viewDirections ?? 'View Directions',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (_navigationSteps.isNotEmpty) const SizedBox(height: 8),
+                            // Street View Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _toggleStreetView,
+                                icon: Icon(
+                                  _isStreetViewMode ? Icons.map : Icons.streetview,
+                                  color: Colors.white,
+                                ),
+                                label: Text(
+                                  _isStreetViewMode 
+                                      ? (AppLocalizations.of(context)?.switchToMap ?? 'Switch to Map')
+                                      : (AppLocalizations.of(context)?.streetView ?? 'Street View'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _isStreetViewMode 
+                                      ? Colors.orange 
+                                      : const Color(0xFFCAE3F2),
+                                  foregroundColor: _isStreetViewMode ? Colors.white : Colors.black,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],

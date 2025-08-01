@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -35,6 +36,12 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
   double _currentPitch = 10.0; // Default pitch
   double _currentFov = 90.0; // Field of view
   bool _isMoving = false;
+
+  // Gesture control variables
+  double _lastScale = 1.0;
+  double _lastHeading = 210.0;
+  double _lastPitch = 10.0;
+  double _lastFov = 90.0;
 
   @override
   void initState() {
@@ -152,6 +159,55 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
       _isMoving = true;
     });
     _updateStreetViewImage();
+  }
+
+  // Gesture control methods
+  void _handleHorizontalDrag(DragUpdateDetails details) {
+    // Horizontal drag controls rotation (heading)
+    double sensitivity = 0.5; // Adjust sensitivity as needed
+    double delta = details.delta.dx * sensitivity;
+    
+    setState(() {
+      _currentHeading = (_currentHeading - delta) % 360;
+      if (_currentHeading < 0) _currentHeading += 360;
+      _isMoving = true;
+    });
+    _updateStreetViewImage();
+  }
+
+  void _handleVerticalDrag(DragUpdateDetails details) {
+    // Vertical drag controls pitch (looking up/down)
+    double sensitivity = 0.5; // Adjust sensitivity as needed
+    double delta = details.delta.dy * sensitivity;
+    
+    setState(() {
+      _currentPitch = (_currentPitch + delta).clamp(-90.0, 90.0);
+      _isMoving = true;
+    });
+    _updateStreetViewImage();
+  }
+
+  void _handleScaleStart(ScaleStartDetails details) {
+    _lastScale = 1.0;
+    _lastHeading = _currentHeading;
+    _lastPitch = _currentPitch;
+    _lastFov = _currentFov;
+  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    // Handle zoom with scale gesture
+    double scaleFactor = details.scale / _lastScale;
+    double newFov = (_lastFov / scaleFactor).clamp(30.0, 120.0);
+    
+    setState(() {
+      _currentFov = newFov;
+      _isMoving = true;
+    });
+    _updateStreetViewImage();
+  }
+
+  void _handleScaleEnd(ScaleEndDetails details) {
+    _lastScale = 1.0;
   }
 
   Future<void> _openInMaps() async {
@@ -342,85 +398,109 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: currentImageUrl != null
-                        ? Image.network(
-                            currentImageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) {
-                                return child;
-                              }
-                              return Container(
-                                color: Colors.grey[200],
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      CircularProgressIndicator(
-                                        value: loadingProgress.expectedTotalBytes != null
-                                            ? loadingProgress.cumulativeBytesLoaded /
-                                                loadingProgress.expectedTotalBytes!
-                                            : null,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        _isMoving ? 'Updating view...' : 'Loading Street View...',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
+                        ? RawGestureDetector(
+                            gestures: {
+                              HorizontalDragGestureRecognizer: GestureRecognizerFactoryWithHandlers<HorizontalDragGestureRecognizer>(
+                                () => HorizontalDragGestureRecognizer(),
+                                (HorizontalDragGestureRecognizer instance) {
+                                  instance.onUpdate = _handleHorizontalDrag;
+                                },
+                              ),
+                              VerticalDragGestureRecognizer: GestureRecognizerFactoryWithHandlers<VerticalDragGestureRecognizer>(
+                                () => VerticalDragGestureRecognizer(),
+                                (VerticalDragGestureRecognizer instance) {
+                                  instance.onUpdate = _handleVerticalDrag;
+                                },
+                              ),
+                              ScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
+                                () => ScaleGestureRecognizer(),
+                                (ScaleGestureRecognizer instance) {
+                                  instance.onStart = _handleScaleStart;
+                                  instance.onUpdate = _handleScaleUpdate;
+                                  instance.onEnd = _handleScaleEnd;
+                                },
+                              ),
                             },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[300],
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline,
-                                        size: 64,
-                                        color: Colors.red[600],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Failed to load Street View',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
+                            child: Image.network(
+                              currentImageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) {
+                                  return child;
+                                }
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(
+                                          value: loadingProgress.expectedTotalBytes != null
+                                              ? loadingProgress.cumulativeBytesLoaded /
+                                                  loadingProgress.expectedTotalBytes!
+                                              : null,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          _isMoving ? 'Updating view...' : 'Loading Street View...',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          size: 64,
                                           color: Colors.red[600],
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'No Street View available at this location',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Failed to load Street View',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.red[600],
+                                          ),
                                         ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton.icon(
-                                        onPressed: _openInMaps,
-                                        icon: const Icon(Icons.open_in_new),
-                                        label: const Text('Open in Maps'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blue,
-                                          foregroundColor: Colors.white,
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'No Street View available at this location',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 16),
+                                        ElevatedButton.icon(
+                                          onPressed: _openInMaps,
+                                          icon: const Icon(Icons.open_in_new),
+                                          label: const Text('Open in Maps'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           )
                         : Container(
                             color: Colors.grey[300],
@@ -463,6 +543,35 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                   top: 16,
                   child: Column(
                     children: [
+                      // Gesture hint
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '👆 Drag to rotate',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '📱 Pinch to zoom',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       // Zoom controls
                       Container(
                         decoration: BoxDecoration(
@@ -481,12 +590,12 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                             IconButton(
                               onPressed: _zoomIn,
                               icon: const Icon(Icons.zoom_in),
-                              tooltip: 'Zoom In',
+                              tooltip: 'Zoom In (or pinch)',
                             ),
                             IconButton(
                               onPressed: _zoomOut,
                               icon: const Icon(Icons.zoom_out),
-                              tooltip: 'Zoom Out',
+                              tooltip: 'Zoom Out (or pinch)',
                             ),
                           ],
                         ),
@@ -510,12 +619,12 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                             IconButton(
                               onPressed: _lookUp,
                               icon: const Icon(Icons.keyboard_arrow_up),
-                              tooltip: 'Look Up',
+                              tooltip: 'Look Up (or drag up)',
                             ),
                             IconButton(
                               onPressed: _lookDown,
                               icon: const Icon(Icons.keyboard_arrow_down),
-                              tooltip: 'Look Down',
+                              tooltip: 'Look Down (or drag down)',
                             ),
                           ],
                         ),
@@ -544,12 +653,12 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                         IconButton(
                           onPressed: _rotateLeft,
                           icon: const Icon(Icons.rotate_left),
-                          tooltip: 'Rotate Left',
+                          tooltip: 'Rotate Left (or drag left)',
                         ),
                         IconButton(
                           onPressed: _rotateRight,
                           icon: const Icon(Icons.rotate_right),
-                          tooltip: 'Rotate Right',
+                          tooltip: 'Rotate Right (or drag right)',
                         ),
                       ],
                     ),
