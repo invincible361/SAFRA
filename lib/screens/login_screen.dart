@@ -81,19 +81,47 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
     try {
+      print('Attempting to sign in with provider: $provider');
+      print('Current auth state before OAuth: ${Supabase.instance.client.auth.currentSession != null ? "User is signed in" : "No user signed in"}');
+      
+      // Use the centralized OAuth configuration for all platforms
       final redirectUrl = OAuthConfig.getRedirectUrl(kIsWeb);
-      await Supabase.instance.client.auth.signInWithOAuth(
+      
+      print('Using redirect URL: ${kIsWeb ? redirectUrl : "(mobile: default deep link)"}');
+      print('Provider: $provider');
+      
+      final response = await Supabase.instance.client.auth.signInWithOAuth(
         provider,
-        redirectTo: kIsWeb ? redirectUrl : null,
+        // Explicitly pass redirect for all platforms so Supabase returns to our app
+        redirectTo: redirectUrl,
+        // Request basic scopes to ensure email/profile are returned
         scopes: 'email profile',
       );
+      
+      print('OAuth sign-in initiated successfully for $provider');
+      print('OAuth response: $response');
+      
+      // Check if we have a session immediately after OAuth call
+      final sessionAfterOAuth = Supabase.instance.client.auth.currentSession;
+      print('Session after OAuth call: ${sessionAfterOAuth != null ? "exists" : "null"}');
+      if (sessionAfterOAuth != null) {
+        print('Session user: ${sessionAfterOAuth.user?.email}');
+      }
+      
+      // Don't wait for completion here - let the auth state listener handle it
+      // The user will be redirected back to the app after sign-in
+      
     } catch (e) {
+      print('Error signing in with $provider: $e');
       setState(() {
         _errorMessage = 'Failed to sign in with ${provider.name}: $e';
       });
     } finally {
+      // Reset loading state; navigation will be handled by the auth state listener
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -326,7 +354,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildOAuthButton() {
     return ElevatedButton.icon(
       onPressed: _isLoading ? null : () => _signInWithProvider(Provider.google),
-      icon: Image.asset('assets/google.jpeg', height: 20),
+      icon: Image.asset('assets/logo.png', height: 20), // Using existing logo instead of missing google.jpeg
       label: const Text("Sign in with Google"),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
