@@ -34,6 +34,7 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
   }
 
   Future<void> _loadRouteOptions() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -46,11 +47,13 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
         googleApiKey: ApiConfig.googleMapsApiKey,
       );
 
+      if (!mounted) return;
       setState(() {
         _routeOptions = routes;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = 'Failed to load route options: $e';
         _isLoading = false;

@@ -1594,6 +1594,7 @@ class _MapScreenState extends State<MapScreen> {
     }
     // --- Mobile: Google Maps ---
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Map'),
         actions: [
