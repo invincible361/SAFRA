@@ -9,6 +9,17 @@ class OAuthConfig {
   
   // Alternative mobile redirect URL format that might work better
   static const String mobileRedirectUrlAlt = 'io.supabase.flutter://';
+  
+  // Get the appropriate redirect URL based on platform
+  static String getRedirectUrl(bool isWeb) {
+    return isWeb ? webRedirectUrl : mobileRedirectUrl;
+  }
+  
+  // Get mobile redirect URL with different formats to try
+  static String getMobileRedirectUrl() {
+    // Try the standard format first
+    return mobileRedirectUrl;
+  }
 
   // Google OAuth configuration (placeholders kept for potential platform needs)
   static const String googleClientId = '107140583191311884519';

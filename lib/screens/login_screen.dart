@@ -217,30 +217,56 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Attempting to sign in with provider: $provider');
       print('Current auth state before OAuth: ${Supabase.instance.client.auth.currentSession != null ? "User is signed in" : "No user signed in"}');
 
-      // For mobile, use the default deep link (don't override redirectTo)
-      // This ensures Supabase uses the proper deep link configured in the project
+      // Try to get the current session first
+      final currentSession = Supabase.instance.client.auth.currentSession;
+      print('Current session before OAuth: ${currentSession != null ? "exists" : "null"}');
+
+      // For mobile, explicitly set the redirect URL to ensure proper deep linking
+      final redirectUrl = kIsWeb 
+          ? OAuthConfig.getRedirectUrl(true) 
+          : OAuthConfig.mobileRedirectUrl;
+
+      print('Using redirect URL: $redirectUrl');
+
       final response = await Supabase.instance.client.auth.signInWithOAuth(
         provider,
-        // Only set redirectTo for web, let mobile use default deep link
-        redirectTo: kIsWeb ? OAuthConfig.getRedirectUrl(true) : null,
-        // Request basic scopes to ensure email/profile are returned
+        redirectTo: redirectUrl,
         scopes: 'email profile',
       );
 
       print('OAuth sign-in initiated successfully for $provider');
       print('OAuth response: $response');
 
-      // For mobile, we need to wait for the OAuth flow to complete
-      // The user will be redirected to the app via deep link
+      // For mobile, wait a bit and then check if we have a session
       if (!kIsWeb) {
-        // Show a message that the user should return to the app
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please complete the sign-in in your browser and return to the app'),
-              duration: Duration(seconds: 5),
-            ),
-          );
+        // Wait for the OAuth flow to potentially complete
+        await Future.delayed(const Duration(seconds: 3));
+        
+        // Try to refresh the session to see if OAuth completed
+        try {
+          await Supabase.instance.client.auth.refreshSession();
+          print('Session refresh attempted');
+        } catch (e) {
+          print('Session refresh error: $e');
+        }
+        
+        // Check if we now have a session
+        final newSession = Supabase.instance.client.auth.currentSession;
+        print('Session after OAuth delay and refresh: ${newSession != null ? "exists" : "null"}');
+        
+        if (newSession != null) {
+          print('OAuth completed successfully, user authenticated');
+          // The main.dart auth listener should handle navigation
+        } else {
+          // Show message to complete in browser
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please complete the sign-in in your browser and return to the app'),
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
         }
       }
 

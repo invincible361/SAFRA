@@ -166,17 +166,37 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           print('Widget not mounted when trying to navigate to DashboardScreen');
         }
       } else if (event == AuthChangeEvent.signedOut) {
-        // User signed out, clear authenticated state and go to login
-        print('User signed out, clearing authenticated state and navigating to login screen');
-        AppLifecycleService().setAuthenticated(false);
-        if (mounted) {
-          setState(() {
-            _currentScreen = const LoginScreen();
-            _isLoading = false;
-          });
-          print('Successfully set current screen to LoginScreen');
+        // Check if this is a legitimate sign out or just OAuth flow
+        print('User signed out event detected');
+        
+        // Wait a moment to see if this is just part of the OAuth flow
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Check if we actually have a session now (OAuth might have completed)
+        final currentSession = Supabase.instance.client.auth.currentSession;
+        if (currentSession != null) {
+          print('OAuth completed after sign out event, user is authenticated');
+          AppLifecycleService().setAuthenticated(true);
+          if (mounted) {
+            setState(() {
+              _currentScreen = const DashboardScreen();
+              _isLoading = false;
+            });
+            print('Successfully set current screen to DashboardScreen after OAuth completion');
+          }
         } else {
-          print('Widget not mounted when trying to navigate to LoginScreen');
+          // This is a real sign out
+          print('Real sign out confirmed, clearing authenticated state and navigating to login screen');
+          AppLifecycleService().setAuthenticated(false);
+          if (mounted) {
+            setState(() {
+              _currentScreen = const LoginScreen();
+              _isLoading = false;
+            });
+            print('Successfully set current screen to LoginScreen');
+          } else {
+            print('Widget not mounted when trying to navigate to LoginScreen');
+          }
         }
       } else if (event == AuthChangeEvent.tokenRefreshed && session != null) {
         // Token refreshed, user is still authenticated
