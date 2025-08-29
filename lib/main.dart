@@ -139,7 +139,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
   Future<void> _initializeApp() async {
     // Always listen for auth changes first
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final event = data.event;
       final session = data.session;
       

@@ -25,11 +25,6 @@ class OAuthConfig {
   static const String googleClientId = '107140583191311884519';
   static const String googleClientIdIos = 'com.googleusercontent.apps.107140583191311884519';
 
-  // Get the appropriate redirect URL based on platform
-  static String getRedirectUrl(bool isWeb) {
-    return isWeb ? webRedirectUrl : mobileRedirectUrl;
-  }
-
   // Get Google client ID based on platform
   static String getGoogleClientId(bool isIos) {
     return isIos ? googleClientIdIos : googleClientId;
