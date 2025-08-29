@@ -192,6 +192,42 @@ class AppLocalizationsHi extends AppLocalizations {
   String get checkConnection => 'कनेक्शन जांचें';
 
   @override
+  String get or => 'या';
+
+  @override
+  String get pin => 'पिन';
+
+  @override
+  String get pinAuthenticationSuccessful => 'पिन प्रमाणीकरण सफल! कृपया लॉगिन के लिए अपने क्रेडेंशियल्स का उपयोग करें।';
+
+  @override
+  String get incorrectPin => 'गलत पिन। कृपया अपने क्रेडेंशियल्स का उपयोग करें।';
+
+  @override
+  String get pleaseEnterEmail => 'कृपया अपना ईमेल पता दर्ज करें';
+
+  @override
+  String get passwordResetLinkSent => 'पासवर्ड रीसेट लिंक आपके ईमेल पर भेज दिया गया है';
+
+  @override
+  String get errorLoadingSecurityStatus => 'सुरक्षा स्थिति लोड करने में त्रुटि';
+
+  @override
+  String get faceRecognitionEnabledSuccessfully => 'फेस रिकग्निशन सफलतापूर्वक सक्षम किया गया!';
+
+  @override
+  String get faceRecognitionEnabled => 'फेस रिकग्निशन सक्षम किया गया! कृपया साइन आउट और वापस साइन इन करके परीक्षण करें।';
+
+  @override
+  String get faceRecognitionDisabled => 'फेस रिकग्निशन सफलतापूर्वक अक्षम किया गया!';
+
+  @override
+  String get pinCodeSetSuccessfully => 'पिन कोड सफलतापूर्वक सेट किया गया!';
+
+  @override
+  String get pinCodeRemovedSuccessfully => 'पिन कोड सफलतापूर्वक हटा दिया गया!';
+
+  @override
   String get biometricNotAvailable => 'बायोमेट्रिक उपलब्ध नहीं है';
 
   @override
@@ -204,7 +240,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get biometricAuthenticationSuccess => 'बायोमेट्रिक प्रमाणीकरण सफल';
 
   @override
-  String get pinCodeSet => 'पिन कोड सेट किया गया';
+  String get pinCodeSet => 'पिन कोड सेट किया';
 
   @override
   String get pinCodeRemoved => 'पिन कोड हटा दिया गया';
@@ -304,6 +340,12 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get searchForPlaces => 'स्थानों के लिए खोजें...';
+
+  @override
+  String get pleaseFillAllFields => 'कृपया सभी फ़ील्ड भरें';
+
+  @override
+  String get invalidCredentials => 'अमान्य क्रेडेंशियल्स';
 
   @override
   String get noPlacesFound => 'कोई स्थान नहीं मिला';

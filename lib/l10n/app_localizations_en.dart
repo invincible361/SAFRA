@@ -192,6 +192,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get checkConnection => 'Check connection';
 
   @override
+  String get or => 'OR';
+
+  @override
+  String get pin => 'PIN';
+
+  @override
+  String get pinAuthenticationSuccessful => 'PIN authentication successful! Please use your credentials to login.';
+
+  @override
+  String get incorrectPin => 'Incorrect PIN. Please use your credentials.';
+
+  @override
+  String get pleaseEnterEmail => 'Please enter your email address';
+
+  @override
+  String get passwordResetLinkSent => 'Password reset link sent to your email';
+
+  @override
+  String get errorLoadingSecurityStatus => 'Error loading security status';
+
+  @override
+  String get faceRecognitionEnabledSuccessfully => 'Face Recognition enabled successfully!';
+
+  @override
+  String get faceRecognitionEnabled => 'Face Recognition enabled! Please test by signing out and back in.';
+
+  @override
+  String get faceRecognitionDisabled => 'Face Recognition disabled successfully!';
+
+  @override
+  String get pinCodeSetSuccessfully => 'PIN code set successfully!';
+
+  @override
+  String get pinCodeRemovedSuccessfully => 'PIN code removed successfully!';
+
+  @override
   String get biometricNotAvailable => 'Biometric not available';
 
   @override
@@ -304,6 +340,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchForPlaces => 'Search for places...';
+
+  @override
+  String get pleaseFillAllFields => 'Please fill in all fields';
+
+  @override
+  String get invalidCredentials => 'Invalid credentials';
 
   @override
   String get noPlacesFound => 'No places found';

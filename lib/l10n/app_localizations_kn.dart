@@ -192,6 +192,42 @@ class AppLocalizationsKn extends AppLocalizations {
   String get checkConnection => 'ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ';
 
   @override
+  String get or => 'ಅಥವಾ';
+
+  @override
+  String get pin => 'ಪಿನ್';
+
+  @override
+  String get pinAuthenticationSuccessful => 'ಪಿನ್ ದೃಢೀಕರಣ ಯಶಸ್ವಿ! ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಲು ನಿಮ್ಮ ಕ್ರೆಡೆನ್ಷಿಯಲ್ಸ್ ಬಳಸಿ.';
+
+  @override
+  String get incorrectPin => 'ತಪ್ಪಾದ ಪಿನ್. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಕ್ರೆಡೆನ್ಷಿಯಲ್ಸ್ ಬಳಸಿ.';
+
+  @override
+  String get pleaseEnterEmail => 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ';
+
+  @override
+  String get passwordResetLinkSent => 'ಪಾಸ್‌ವರ್ಡ್ ರೀಸೆಟ್ ಲಿಂಕ್ ನಿಮ್ಮ ಇಮೇಲ್‌ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ';
+
+  @override
+  String get errorLoadingSecurityStatus => 'ಸುರಕ್ಷತೆ ಸ್ಥಿತಿಯನ್ನು ಲೋಡ್ ಮಾಡುವಲ್ಲಿ ದೋಷ';
+
+  @override
+  String get faceRecognitionEnabledSuccessfully => 'ಫೇಸ್ ರೆಕಗ್ನಿಷನ್ ಯಶಸ್ವಿಯಾಗಿ ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ!';
+
+  @override
+  String get faceRecognitionEnabled => 'ಫೇಸ್ ರೆಕಗ್ನಿಷನ್ ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ! ದಯವಿಟ್ಟು ಸೈನ್ ಔಟ್ ಮತ್ತು ಮತ್ತೆ ಸೈನ್ ಇನ್ ಮಾಡಿ ಪರೀಕ್ಷಿಸಿ.';
+
+  @override
+  String get faceRecognitionDisabled => 'ಫೇಸ್ ರೆಕಗ್ನಿಷನ್ ಯಶಸ್ವಿಯಾಗಿ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ!';
+
+  @override
+  String get pinCodeSetSuccessfully => 'ಪಿನ್ ಕೋಡ್ ಯಶಸ್ವಿಯಾಗಿ ಹೊಂದಿಸಲಾಗಿದೆ!';
+
+  @override
+  String get pinCodeRemovedSuccessfully => 'ಪಿನ್ ಕೋಡ್ ಯಶಸ್ವಿಯಾಗಿ ತೆಗೆದುಹಾಕಲಾಗಿದೆ!';
+
+  @override
   String get biometricNotAvailable => 'ಬಯೋಮೆಟ್ರಿಕ್ ಲಭ್ಯವಿಲ್ಲ';
 
   @override
@@ -304,6 +340,12 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get searchForPlaces => 'ಸ್ಥಳಗಳಿಗಾಗಿ ಹುಡುಕಿ...';
+
+  @override
+  String get pleaseFillAllFields => 'ದಯವಿಟ್ಟು ಎಲ್ಲಾ ಕ್ಷೇತ್ರಗಳನ್ನು ತುಂಬಿರಿ';
+
+  @override
+  String get invalidCredentials => 'ಅಮಾನ್ಯ ಕ್ರೆಡೆನ್ಷಿಯಲ್ಸ್';
 
   @override
   String get noPlacesFound => 'ಯಾವುದೇ ಸ್ಥಳಗಳು ಕಂಡುಬಂದಿಲ್ಲ';

@@ -463,6 +463,78 @@ abstract class AppLocalizations {
   /// **'Check connection'**
   String get checkConnection;
 
+  /// No description provided for @or.
+  ///
+  /// In en, this message translates to:
+  /// **'OR'**
+  String get or;
+
+  /// No description provided for @pin.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN'**
+  String get pin;
+
+  /// No description provided for @pinAuthenticationSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN authentication successful! Please use your credentials to login.'**
+  String get pinAuthenticationSuccessful;
+
+  /// No description provided for @incorrectPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect PIN. Please use your credentials.'**
+  String get incorrectPin;
+
+  /// No description provided for @pleaseEnterEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email address'**
+  String get pleaseEnterEmail;
+
+  /// No description provided for @passwordResetLinkSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset link sent to your email'**
+  String get passwordResetLinkSent;
+
+  /// No description provided for @errorLoadingSecurityStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading security status'**
+  String get errorLoadingSecurityStatus;
+
+  /// No description provided for @faceRecognitionEnabledSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Face Recognition enabled successfully!'**
+  String get faceRecognitionEnabledSuccessfully;
+
+  /// No description provided for @faceRecognitionEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Face Recognition enabled! Please test by signing out and back in.'**
+  String get faceRecognitionEnabled;
+
+  /// No description provided for @faceRecognitionDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Face Recognition disabled successfully!'**
+  String get faceRecognitionDisabled;
+
+  /// No description provided for @pinCodeSetSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN code set successfully!'**
+  String get pinCodeSetSuccessfully;
+
+  /// No description provided for @pinCodeRemovedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN code removed successfully!'**
+  String get pinCodeRemovedSuccessfully;
+
   /// No description provided for @biometricNotAvailable.
   ///
   /// In en, this message translates to:
@@ -690,6 +762,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search for places...'**
   String get searchForPlaces;
+
+  /// No description provided for @pleaseFillAllFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in all fields'**
+  String get pleaseFillAllFields;
+
+  /// No description provided for @invalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid credentials'**
+  String get invalidCredentials;
 
   /// No description provided for @noPlacesFound.
   ///
