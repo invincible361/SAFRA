@@ -315,28 +315,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // Biometric Login Button (if available and enabled)
-                if (_biometricAvailable && (_biometricEnabled || _pinSet))
-                  Column(
-                    children: [
-                      _buildBiometricButton(),
-                      const SizedBox(height: 30),
-                      // Divider between biometric and regular login
-                      Row(
-                        children: [
-                          const Expanded(child: Divider(color: Colors.white24)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text("OR",
-                                style: TextStyle(color: Colors.grey[400])),
-                          ),
-                          const Expanded(child: Divider(color: Colors.white24)),
-                        ],
-                      ),
-                      const SizedBox(height: 30),
-                    ],
-                  ),
-
                 // Email
                 _buildGlassField(
                   controller: _emailController,
@@ -514,24 +492,5 @@ class _LoginScreenState extends State<LoginScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
-  }
-
-  Widget _buildBiometricButton() {
-    if (_biometricEnabled) {
-      // Show biometric authentication button
-      return _buildGradientButton(
-        "Login with ${_currentSecurityMethod ?? 'Biometric'}",
-        _authenticateWithBiometric,
-      );
-    } else if (_pinSet) {
-      // Show PIN authentication button
-      return _buildGradientButton(
-        "Login with PIN",
-        _authenticateWithPin,
-      );
-    } else {
-      // No security method available
-      return const SizedBox.shrink();
-    }
   }
 }
