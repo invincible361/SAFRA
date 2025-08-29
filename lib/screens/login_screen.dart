@@ -266,8 +266,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
             colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -288,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TranslatedText(
                   text: 'Welcome Back',
                   staticKey: 'welcome',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary),
@@ -298,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TranslatedText(
                   text: "Let's Get Started",
                   staticKey: 'getStarted',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 16, color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
@@ -325,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _sendPasswordResetEmail,
-                    child: const Text(
+                    child: Text(
                       "Forgot Password?",
                       style: TextStyle(color: AppColors.secondaryAccent),
                     ),
