@@ -267,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [AppColors.backgroundTop, AppColors.backgroundBottom],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -386,7 +386,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               builder: (_) => const SignUpScreen()),
                         );
                       },
-                      child: const Text("Sign Up",
+                      child: Text("Sign Up",
                           style: TextStyle(color: AppColors.secondaryAccent)),
                     )
                   ],
@@ -421,10 +421,10 @@ class _LoginScreenState extends State<LoginScreen> {
       child: TextField(
         controller: controller,
         obscureText: obscure,
-        style: const TextStyle(color: AppColors.textPrimary),
+                 style: TextStyle(color: AppColors.textPrimary),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary),
+                     labelStyle: TextStyle(color: AppColors.textSecondary),
           border: InputBorder.none,
           prefixIcon: Icon(icon, color: AppColors.textSecondary),
           contentPadding:
@@ -440,7 +440,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [AppColors.primaryAccent, AppColors.secondaryAccent],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
