@@ -151,6 +151,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
       print('Is signed in event: ${event == AuthChangeEvent.signedIn}');
       print('Is session not null: ${session != null}');
       
+      // Handle all possible OAuth events
       if (event == AuthChangeEvent.signedIn && session != null) {
         // User is signed in, set authenticated state and go to dashboard screen (no biometric check)
         print('User signed in, setting authenticated state and navigating to dashboard screen');
@@ -176,6 +177,28 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           print('Successfully set current screen to LoginScreen');
         } else {
           print('Widget not mounted when trying to navigate to LoginScreen');
+        }
+      } else if (event == AuthChangeEvent.tokenRefreshed && session != null) {
+        // Token refreshed, user is still authenticated
+        print('Token refreshed, user remains authenticated');
+        AppLifecycleService().setAuthenticated(true);
+        if (mounted && _currentScreen is! DashboardScreen) {
+          setState(() {
+            _currentScreen = const DashboardScreen();
+            _isLoading = false;
+          });
+          print('Successfully set current screen to DashboardScreen after token refresh');
+        }
+      } else if (event == AuthChangeEvent.userUpdated && session != null) {
+        // User updated, still authenticated
+        print('User updated, user remains authenticated');
+        AppLifecycleService().setAuthenticated(true);
+        if (mounted && _currentScreen is! DashboardScreen) {
+          setState(() {
+            _currentScreen = const DashboardScreen();
+            _isLoading = false;
+          });
+          print('Successfully set current screen to DashboardScreen after user update');
         }
       } else {
         print('Auth state change not handled - event: $event, session: ${session != null ? "exists" : "null"}');
@@ -411,6 +434,27 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // Add a method to manually check auth state and navigate
+  void _checkAuthStateAndNavigate() {
+    final session = Supabase.instance.client.auth.currentSession;
+    print('Manual auth check - Session: ${session != null ? "exists" : "null"}');
+    
+    if (session != null && mounted) {
+      print('Manual auth check - User authenticated, navigating to dashboard');
+      AppLifecycleService().setAuthenticated(true);
+      setState(() {
+        _currentScreen = const DashboardScreen();
+        _isLoading = false;
+      });
+    } else if (mounted) {
+      print('Manual auth check - No session, staying on login');
+      setState(() {
+        _currentScreen = const LoginScreen();
+        _isLoading = false;
+      });
     }
   }
 

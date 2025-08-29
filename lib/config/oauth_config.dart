@@ -6,6 +6,9 @@ class OAuthConfig {
   // OAuth redirect URLs
   static const String webRedirectUrl = 'https://fjsrzduddrgciuytkrad.supabase.co/auth/v1/callback';
   static const String mobileRedirectUrl = 'io.supabase.flutter://login-callback';
+  
+  // Alternative mobile redirect URL format that might work better
+  static const String mobileRedirectUrlAlt = 'io.supabase.flutter://';
 
   // Google OAuth configuration (placeholders kept for potential platform needs)
   static const String googleClientId = '107140583191311884519';

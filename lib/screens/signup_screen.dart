@@ -2,18 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'otpverity_screen.dart';
-
-class AppColors {
-  static const Color backgroundTop = Color(0xFF242C3B);
-  static const Color backgroundBottom = Color(0xFF2B3D80);
-  static const Color surface = Color(0xFF1E2A47);
-
-  static const Color primaryAccent = Color(0xFF6C63FF); // neon purple
-  static const Color secondaryAccent = Color(0xFF00D4FF); // neon cyan
-
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFFB0B8D1);
-}
+import '../config/app_colors.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});

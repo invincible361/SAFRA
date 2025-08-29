@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:safra_app/screens/signup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../l10n/app_localizations.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/translated_text.dart';
@@ -31,6 +32,20 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _checkBiometricStatus();
+    
+    // Add periodic auth state check for OAuth completion
+    Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (mounted) {
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session != null) {
+          print('LoginScreen: OAuth completed, user authenticated');
+          timer.cancel();
+          // The main.dart auth listener should handle navigation
+        }
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   Future<void> _checkBiometricStatus() async {
@@ -202,16 +217,12 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Attempting to sign in with provider: $provider');
       print('Current auth state before OAuth: ${Supabase.instance.client.auth.currentSession != null ? "User is signed in" : "No user signed in"}');
 
-      // Use the centralized OAuth configuration for all platforms
-      final redirectUrl = OAuthConfig.getRedirectUrl(kIsWeb);
-
-      print('Using redirect URL: ${kIsWeb ? redirectUrl : "(mobile: default deep link)"}');
-      print('Provider: $provider');
-
+      // For mobile, use the default deep link (don't override redirectTo)
+      // This ensures Supabase uses the proper deep link configured in the project
       final response = await Supabase.instance.client.auth.signInWithOAuth(
         provider,
-        // Explicitly pass redirect for all platforms so Supabase returns to our app
-        redirectTo: redirectUrl,
+        // Only set redirectTo for web, let mobile use default deep link
+        redirectTo: kIsWeb ? OAuthConfig.getRedirectUrl(true) : null,
         // Request basic scopes to ensure email/profile are returned
         scopes: 'email profile',
       );
@@ -219,15 +230,19 @@ class _LoginScreenState extends State<LoginScreen> {
       print('OAuth sign-in initiated successfully for $provider');
       print('OAuth response: $response');
 
-      // Check if we have a session immediately after OAuth call
-      final sessionAfterOAuth = Supabase.instance.client.auth.currentSession;
-      print('Session after OAuth call: ${sessionAfterOAuth != null ? "exists" : "null"}');
-      if (sessionAfterOAuth != null) {
-        print('Session user: ${sessionAfterOAuth.user?.email}');
+      // For mobile, we need to wait for the OAuth flow to complete
+      // The user will be redirected to the app via deep link
+      if (!kIsWeb) {
+        // Show a message that the user should return to the app
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please complete the sign-in in your browser and return to the app'),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
       }
-
-      // Don't wait for completion here - let the auth state listener handle it
-      // The user will be redirected back to the app after sign-in
 
     } catch (e) {
       print('Error signing in with $provider: $e');
