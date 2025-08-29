@@ -60,6 +60,14 @@
   "tryAgain": "पुनः प्रयास करें",
   "noInternetConnection": "इंटरनेट कनेक्शन नहीं है",
   "checkConnection": "कनेक्शन जांचें",
+  "or": "या",
+  "pin": "पिन",
+  "cancel": "रद्द करें",
+  "verify": "सत्यापित करें",
+  "pinAuthenticationSuccessful": "पिन प्रमाणीकरण सफल! कृपया लॉगिन के लिए अपने क्रेडेंशियल्स का उपयोग करें।",
+  "incorrectPin": "गलत पिन। कृपया अपने क्रेडेंशियल्स का उपयोग करें।",
+  "pleaseEnterEmail": "कृपया अपना ईमेल पता दर्ज करें",
+  "passwordResetLinkSent": "पासवर्ड रीसेट लिंक आपके ईमेल पर भेज दिया गया है",
   "biometricNotAvailable": "बायोमेट्रिक उपलब्ध नहीं है",
   "biometricNotEnrolled": "बायोमेट्रिक पंजीकृत नहीं है",
   "biometricAuthenticationFailed": "बायोमेट्रिक प्रमाणीकरण विफल",
@@ -140,5 +148,12 @@
   "considerations": "विचार",
   "lowTraffic": "कम ट्रैफिक",
   "mediumTraffic": "मध्यम ट्रैफिक",
-  "highTraffic": "उच्च ट्रैफिक"
+  "highTraffic": "उच्च ट्रैफिक",
+  "pleaseFillAllFields": "कृपया सभी फ़ील्ड भरें",
+  "invalidCredentials": "अमान्य क्रेडेंशियल्स",
+  "networkError": "नेटवर्क त्रुटि",
+  "tryAgain": "पुनः प्रयास करें",
+  "noInternetConnection": "इंटरनेट कनेक्शन नहीं है",
+  "checkConnection": "कनेक्शन जांचें",
+  "noPlacesFound": "कोई स्थान नहीं मिला"
 } 

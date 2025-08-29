@@ -121,15 +121,15 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: pinController,
           keyboardType: TextInputType.number,
           obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'PIN',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)?.pin ?? 'PIN',
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -140,8 +140,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (success) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('PIN authentication successful! Please use your credentials to login.'),
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context)?.pinAuthenticationSuccessful ?? 'PIN authentication successful! Please use your credentials to login.'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -149,13 +149,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 } else {
                   if (mounted) {
                     setState(() {
-                      _errorMessage = 'Incorrect PIN. Please use your credentials.';
+                      _errorMessage = AppLocalizations.of(context)?.incorrectPin ?? 'Incorrect PIN. Please use your credentials.';
                     });
                   }
                 }
               }
             },
-            child: const Text('Verify'),
+            child: Text(AppLocalizations.of(context)?.verify ?? 'Verify'),
           ),
         ],
       ),
@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || password.isEmpty) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Please fill in all fields';
+        _errorMessage = AppLocalizations.of(context)?.pleaseFillAllFields ?? 'Please fill in all fields';
       });
       return;
     }
@@ -191,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.user == null) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Invalid credentials';
+          _errorMessage = AppLocalizations.of(context)?.invalidCredentials ?? 'Invalid credentials';
         });
       }
     } catch (e) {
@@ -258,14 +258,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _sendPasswordResetEmail() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your email address');
+      setState(() => _errorMessage = AppLocalizations.of(context)?.pleaseEnterEmail ?? 'Please enter your email address');
       return;
     }
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset link sent to your email')),
+          SnackBar(content: Text(AppLocalizations.of(context)?.passwordResetLinkSent ?? 'Password reset link sent to your email')),
         );
       }
     } catch (e) {
@@ -318,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Email
                 _buildGlassField(
                   controller: _emailController,
-                  label: "Email",
+                  label: AppLocalizations.of(context)?.email ?? "Email",
                   icon: Icons.email,
                 ),
                 const SizedBox(height: 20),
@@ -326,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Password
                 _buildGlassField(
                   controller: _passwordController,
-                  label: "Password",
+                  label: AppLocalizations.of(context)?.password ?? "Password",
                   icon: Icons.lock,
                   obscure: true,
                 ),
@@ -345,7 +345,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
 
                 // Login Button
-                _buildGradientButton("Login", _login),
+                _buildGradientButton(AppLocalizations.of(context)?.login ?? "Login", _login),
                 const SizedBox(height: 16),
 
                 if (_errorMessage != null)
@@ -370,7 +370,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Expanded(child: Divider(color: Colors.white24)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text("OR",
+                      child: Text(AppLocalizations.of(context)?.or ?? "OR",
                           style: TextStyle(color: Colors.grey[400])),
                     ),
                     const Expanded(child: Divider(color: Colors.white24)),
@@ -387,8 +387,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account?",
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text(AppLocalizations.of(context)?.dontHaveAccount ?? "Don't have an account?",
+                        style: const TextStyle(color: AppColors.textSecondary)),
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -397,8 +397,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               builder: (_) => const SignUpScreen()),
                         );
                       },
-                      child: const Text("Sign Up",
-                          style: TextStyle(color: AppColors.secondaryAccent)),
+                      child: Text(AppLocalizations.of(context)?.signUp ?? "Sign Up",
+                          style: const TextStyle(color: AppColors.secondaryAccent)),
                     )
                   ],
                 ),
