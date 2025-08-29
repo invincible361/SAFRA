@@ -82,15 +82,18 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Attempting to sign in with provider: $provider');
       print('Current auth state before OAuth: ${Supabase.instance.client.auth.currentSession != null ? "User is signed in" : "No user signed in"}');
       
-      // Use the centralized OAuth configuration
+      // Use the centralized OAuth configuration for web only
       final redirectUrl = OAuthConfig.getRedirectUrl(kIsWeb);
       
-      print('Using redirect URL: $redirectUrl');
+      print('Using redirect URL: ${kIsWeb ? redirectUrl : "(mobile: default deep link)"}');
       print('Provider: $provider');
       
       final response = await Supabase.instance.client.auth.signInWithOAuth(
         provider,
-        redirectTo: redirectUrl,
+        // For web, explicitly pass redirect; for mobile, rely on platform deep link
+        redirectTo: kIsWeb ? redirectUrl : null,
+        // Request basic scopes to ensure email/profile are returned
+        scopes: 'email profile',
       );
       print('OAuth sign-in initiated successfully for $provider');
       print('OAuth response: $response');
@@ -109,8 +112,14 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Error signing in with $provider: $e');
       setState(() {
         _errorMessage = 'Failed to sign in with ${provider.name}: $e';
-        _isLoading = false;
       });
+    } finally {
+      // Reset loading state; navigation will be handled by the auth state listener
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
