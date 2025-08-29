@@ -14,6 +14,7 @@ import 'services/biometric_service.dart';
 import 'services/app_lifecycle_service.dart';
 import 'services/enhanced_language_service.dart';
 import 'dart:async';
+import 'config/app_colors.dart';
 
 // Global navigator key for navigation from services
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -62,10 +63,29 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             locale: languageService.currentLocale,
             theme: ThemeData.dark().copyWith(
-              scaffoldBackgroundColor: const Color(0xFF111416),
+              scaffoldBackgroundColor: AppColors.backgroundTop,
               colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFFCAE3F2),
+                seedColor: AppColors.primaryAccent,
                 brightness: Brightness.dark,
+                primary: AppColors.primaryAccent,
+                secondary: AppColors.secondaryAccent,
+                surface: AppColors.surface,
+                background: AppColors.backgroundTop,
+              ),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: AppColors.surface,
+                foregroundColor: AppColors.textPrimary,
+                elevation: 0,
+              ),
+              cardTheme: const CardTheme(
+                color: AppColors.cardBackground,
+                elevation: 4,
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryAccent,
+                  foregroundColor: AppColors.textPrimary,
+                ),
               ),
             ),
             localizationsDelegates: const [

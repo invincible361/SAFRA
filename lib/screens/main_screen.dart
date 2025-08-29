@@ -4,6 +4,7 @@ import 'package:safra_app/screens/contact_selection_screen.dart';
 import 'package:safra_app/screens/map_screen.dart';
 import 'package:safra_app/screens/more_screen.dart';
 import 'package:safra_app/screens/sos_screen.dart';
+import '../config/app_colors.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -11,60 +12,84 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E), // Dark theme background
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E),
-        elevation: 0,
-        title: const Text(
-          "Women Safety Dashboard",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.backgroundGradient,
         ),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          children: [
-            _buildDashboardCard(
-              context,
-              icon: Icons.sos,
-              title: "SOS",
-              description: "Send instant help alert",
-              color: Colors.red,
-              page: EmergencySOSScreen(),
-            ),
-            
-            _buildDashboardCard(
-              context,
-              icon: Icons.map,
-              title: "Safe Routes",
-              description: "Navigate safe travel paths",
-              color: Colors.green,
-              page: const MapScreen(),
-            ),
-            _buildDashboardCard(
-              context,
-              icon: Icons.group,
-              title: "Community",
-              description: "Connect with helpers nearby",
-              color: Colors.orange,
-              page: const CommunityScreen(),
-            ),
-            _buildDashboardCard(
-              context,
-              icon: Icons.more_horiz,
-              title: "More",
-              description: "Explore more options",
-              color: Colors.grey,
-              page: const MoreScreen()
-            ),
-          ],
+        child: SafeArea(
+          child: Column(
+            children: [
+              // App Bar
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.shield,
+                      color: AppColors.textPrimary,
+                      size: 32,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "Women Safety Dashboard",
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Dashboard Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    children: [
+                      _buildDashboardCard(
+                        context,
+                        icon: Icons.sos,
+                        title: "SOS",
+                        description: "Send instant help alert",
+                        color: AppColors.error,
+                        page: const EmergencySOSScreen(),
+                      ),
+                      
+                      _buildDashboardCard(
+                        context,
+                        icon: Icons.map,
+                        title: "Safe Routes",
+                        description: "Navigate safe travel paths",
+                        color: AppColors.success,
+                        page: const MapScreen(),
+                      ),
+                      _buildDashboardCard(
+                        context,
+                        icon: Icons.group,
+                        title: "Community",
+                        description: "Connect with helpers nearby",
+                        color: AppColors.warning,
+                        page: const CommunityScreen(),
+                      ),
+                      _buildDashboardCard(
+                        context,
+                        icon: Icons.more_horiz,
+                        title: "More",
+                        description: "Explore more options",
+                        color: AppColors.info,
+                        page: const MoreScreen()
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -86,25 +111,40 @@ class DashboardScreen extends StatelessWidget {
           MaterialPageRoute(builder: (context) => page),
         );
       },
-      child: Card(
-        color: const Color(0xFF2A2A2A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 4,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.glassBackground,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.glassBorder,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 10,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: color.withOpacity(0.2),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(icon, size: 32, color: color),
               ),
               const SizedBox(height: 12),
               Text(
                 title,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -114,7 +154,7 @@ class DashboardScreen extends StatelessWidget {
               Text(
                 description,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: AppColors.textSecondary,
                   fontSize: 12,
                 ),
                 textAlign: TextAlign.center,

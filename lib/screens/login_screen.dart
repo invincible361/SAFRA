@@ -8,18 +8,7 @@ import '../widgets/translated_text.dart';
 import '../services/enhanced_language_service.dart';
 import '../services/biometric_service.dart';
 import '../config/oauth_config.dart';
-
-class AppColors {
-  static const Color backgroundTop = Color(0xFF242C3B);
-  static const Color backgroundBottom = Color(0xFF2B3D80);
-  static const Color surface = Color(0xFF1E2A47);
-
-  static const Color primaryAccent = Color(0xFF6C63FF); // neon purple
-  static const Color secondaryAccent = Color(0xFF00D4FF); // neon cyan
-
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFFB0B8D1);
-}
+import '../config/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
