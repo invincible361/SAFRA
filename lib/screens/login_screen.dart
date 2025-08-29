@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/translated_text.dart';
 import '../services/enhanced_language_service.dart';
+import '../services/biometric_service.dart';
 import '../config/oauth_config.dart';
 
 class AppColors {
@@ -32,6 +33,134 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+  bool _pinSet = false;
+  String? _currentSecurityMethod;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricStatus();
+  }
+
+  Future<void> _checkBiometricStatus() async {
+    try {
+      final biometricAvailable = await BiometricService.isBiometricAvailable();
+      final biometricEnabled = await BiometricService.isBiometricEnabled();
+      final pinSet = await BiometricService.isPinSet();
+      final currentMethod = await BiometricService.getCurrentSecurityMethod();
+
+      if (mounted) {
+        setState(() {
+          _biometricAvailable = biometricAvailable;
+          _biometricEnabled = biometricEnabled;
+          _pinSet = pinSet;
+          _currentSecurityMethod = currentMethod;
+        });
+      }
+    } catch (e) {
+      print('Error checking biometric status: $e');
+    }
+  }
+
+  Future<void> _authenticateWithBiometric() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final success = await BiometricService.authenticateWithBiometric();
+      if (success) {
+        // Biometric authentication successful, try to get stored credentials
+        // For now, we'll just show a success message and let user use regular login
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Biometric authentication successful! Please use your credentials to login.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Biometric authentication failed. Please use your credentials.';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Biometric error: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _authenticateWithPin() async {
+    final pin = await BiometricService.getPinCode();
+    if (pin != null) {
+      // Show PIN input dialog
+      _showPinInputDialog();
+    }
+  }
+
+  void _showPinInputDialog() {
+    final pinController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enter PIN'),
+        content: TextField(
+          controller: pinController,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'PIN',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final enteredPin = pinController.text;
+              if (enteredPin.isNotEmpty) {
+                final success = await BiometricService.authenticateWithPin(enteredPin);
+                if (success) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('PIN authentication successful! Please use your credentials to login.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } else {
+                  if (mounted) {
+                    setState(() {
+                      _errorMessage = 'Incorrect PIN. Please use your credentials.';
+                    });
+                  }
+                }
+              }
+            },
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -185,6 +314,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
+
+                // Biometric Login Button (if available and enabled)
+                if (_biometricAvailable && (_biometricEnabled || _pinSet))
+                  Column(
+                    children: [
+                      _buildBiometricButton(),
+                      const SizedBox(height: 30),
+                      // Divider between biometric and regular login
+                      Row(
+                        children: [
+                          const Expanded(child: Divider(color: Colors.white24)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text("OR",
+                                style: TextStyle(color: Colors.grey[400])),
+                          ),
+                          const Expanded(child: Divider(color: Colors.white24)),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
 
                 // Email
                 _buildGlassField(
@@ -363,5 +514,24 @@ class _LoginScreenState extends State<LoginScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  Widget _buildBiometricButton() {
+    if (_biometricEnabled) {
+      // Show biometric authentication button
+      return _buildGradientButton(
+        "Login with ${_currentSecurityMethod ?? 'Biometric'}",
+        _authenticateWithBiometric,
+      );
+    } else if (_pinSet) {
+      // Show PIN authentication button
+      return _buildGradientButton(
+        "Login with PIN",
+        _authenticateWithPin,
+      );
+    } else {
+      // No security method available
+      return const SizedBox.shrink();
+    }
   }
 }
