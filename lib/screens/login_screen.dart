@@ -90,8 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
       
       final response = await Supabase.instance.client.auth.signInWithOAuth(
         provider,
-        // For web, explicitly pass redirect; for mobile, rely on platform deep link
-        redirectTo: kIsWeb ? redirectUrl : null,
+        // Explicitly pass redirect for all platforms so Supabase returns to our app
+        redirectTo: redirectUrl,
         // Request basic scopes to ensure email/profile are returned
         scopes: 'email profile',
       );
