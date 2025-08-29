@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
-import '../services/biometric_service.dart';
 import '../services/app_lifecycle_service.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/language_selector.dart';
@@ -100,18 +97,14 @@ class _MapScreenState extends State<MapScreen> {
       },
     );
 
-    if (shouldSignOut == true) {
+    if (shouldSignOut == true && mounted) {
       try {
-        // Set authentication status to false
-        AppLifecycleService().setAuthenticated(false);
         await Supabase.instance.client.auth.signOut();
-        print('User signed out successfully');
-        // Navigate to login screen and clear the navigation stack
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false, // This removes all previous routes from the stack
-        );
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        }
       } catch (e) {
         print('Error signing out: $e');
         // Show error message if sign out fails
@@ -883,7 +876,7 @@ class _MapScreenState extends State<MapScreen> {
                               : null,
                           icon: const Icon(Icons.arrow_back, color: Colors.black),
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.8),
+                            backgroundColor: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ),
@@ -897,7 +890,7 @@ class _MapScreenState extends State<MapScreen> {
                               : null,
                           icon: const Icon(Icons.arrow_forward, color: Colors.black),
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.8),
+                            backgroundColor: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ),
@@ -920,7 +913,7 @@ class _MapScreenState extends State<MapScreen> {
                             color: Colors.black,
                           ),
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.8),
+                            backgroundColor: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
                       ),
@@ -937,7 +930,7 @@ class _MapScreenState extends State<MapScreen> {
                               },
                               icon: const Icon(Icons.zoom_in, color: Colors.black),
                               style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withOpacity(0.8),
+                                backgroundColor: Colors.white.withValues(alpha: 0.8),
                               ),
                             ),
                             IconButton(
@@ -946,7 +939,7 @@ class _MapScreenState extends State<MapScreen> {
                               },
                               icon: const Icon(Icons.zoom_out, color: Colors.black),
                               style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withOpacity(0.8),
+                                backgroundColor: Colors.white.withValues(alpha: 0.8),
                               ),
                             ),
                           ],
@@ -1297,8 +1290,8 @@ class _MapScreenState extends State<MapScreen> {
                           final validRoutePoints = routePoints.where((p) => _isValidLatLng(p)).toList();
                           return fm.FlutterMap(
                             options: fm.MapOptions(
-                              center: center,
-                              zoom: 13.0,
+                              initialCenter: center,
+                              initialZoom: 13.0,
                               onTap: (tapPos, latlng) {
                                 _webShowSuggestions.value = false;
                               },
@@ -1384,7 +1377,7 @@ class _MapScreenState extends State<MapScreen> {
                           border: Border.all(color: Colors.grey),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
