@@ -91,7 +91,7 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations?.aiRouteSelection ?? 'AI Route Selection'),
@@ -108,8 +108,8 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
       body: _isLoading
           ? _buildLoadingView()
           : _error != null
-              ? _buildErrorView()
-              : _buildRouteOptionsView(),
+          ? _buildErrorView()
+          : _buildRouteOptionsView(),
       bottomNavigationBar: _selectedRoute != null
           ? _buildBottomBar()
           : null,
@@ -162,7 +162,7 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
       itemBuilder: (context, index) {
         final route = _routeOptions[index];
         final isSelected = _selectedRoute?.id == route.id;
-        
+
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: isSelected ? 4 : 2,
@@ -260,7 +260,7 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
   Widget _buildTrafficChip(String trafficLevel) {
     Color color;
     String label;
-    
+
     switch (trafficLevel.toLowerCase()) {
       case 'low':
         color = Colors.green;
@@ -274,7 +274,7 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
         color = Colors.orange;
         label = 'Medium Traffic';
     }
-    
+
     return _buildInfoChip(Icons.traffic, label, color);
   }
 
@@ -282,7 +282,7 @@ class _AIRouteSelectionScreenState extends State<AIRouteSelectionScreen> {
     final analysis = route.analysis;
     final pros = analysis['pros'] as List<String>? ?? [];
     final cons = analysis['cons'] as List<String>? ?? [];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -485,4 +485,4 @@ class _PreferencesDialogState extends State<_PreferencesDialog> {
       },
     );
   }
-} 
+}

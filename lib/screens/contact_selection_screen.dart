@@ -75,7 +75,7 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
 
     if (query.isEmpty) {
       setState(() {
-        _filteredContacts = widget.showCustomListOnly 
+        _filteredContacts = widget.showCustomListOnly
             ? List.from(_customContacts)
             : List.from(_allContacts);
       });
@@ -85,18 +85,14 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
     final lowercaseQuery = query.toLowerCase();
     final filtered = (widget.showCustomListOnly ? _customContacts : _allContacts)
         .where((contact) {
-      // Search by name
       if (contact.displayName?.toLowerCase().contains(lowercaseQuery) == true) {
         return true;
       }
-      
-      // Search by phone number
       for (final phone in contact.phones!) {
         if (phone.value?.toLowerCase().contains(lowercaseQuery) == true) {
           return true;
         }
       }
-      
       return false;
     }).toList();
 
@@ -108,21 +104,13 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
   Future<void> _addToCustomList(Contact contact) async {
     final success = await ContactService.addContactToCustomList(contact);
     if (success) {
-      // Reload custom contacts
       _customContacts = await ContactService.loadCustomContactList();
       setState(() {});
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${contact.displayName} added to favorites'),
           backgroundColor: Colors.green,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to add contact to favorites'),
-          backgroundColor: Colors.red,
         ),
       );
     }
@@ -131,13 +119,12 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
   Future<void> _removeFromCustomList(Contact contact) async {
     final success = await ContactService.removeContactFromCustomList(contact.displayName!);
     if (success) {
-      // Reload custom contacts
       _customContacts = await ContactService.loadCustomContactList();
       if (widget.showCustomListOnly) {
         _filteredContacts = List.from(_customContacts);
       }
       setState(() {});
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${contact.displayName} removed from favorites'),
@@ -154,12 +141,23 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
   Widget _buildContactTile(Contact contact) {
     final isInCustomList = _isInCustomList(contact);
     final primaryPhone = ContactService.getPrimaryPhoneNumber(contact);
-    
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.blue,
+          backgroundColor: Colors.blueAccent,
           child: Text(
             ContactService.formatContactName(contact).substring(0, 1).toUpperCase(),
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -167,11 +165,17 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
         ),
         title: Text(
           ContactService.formatContactName(contact),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
-        subtitle: primaryPhone != null 
-            ? Text(ContactService.formatPhoneNumber(primaryPhone))
-            : const Text('No phone number'),
+        subtitle: primaryPhone != null
+            ? Text(
+          ContactService.formatPhoneNumber(primaryPhone),
+          style: const TextStyle(color: Colors.white70),
+        )
+            : const Text('No phone number', style: TextStyle(color: Colors.redAccent)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -186,13 +190,12 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                 },
                 icon: Icon(
                   isInCustomList ? Icons.favorite : Icons.favorite_border,
-                  color: isInCustomList ? Colors.red : Colors.grey,
+                  color: isInCustomList ? Colors.red : Colors.white70,
                 ),
-                tooltip: isInCustomList ? 'Remove from favorites' : 'Add to favorites',
               ),
             IconButton(
               onPressed: () => widget.onContactSelected(contact),
-              icon: const Icon(Icons.send, color: Colors.blue),
+              icon: const Icon(Icons.send, color: Colors.blueAccent),
               tooltip: 'Send location',
             ),
           ],
@@ -205,16 +208,18 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    
+
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
         title: Text(
-          widget.showCustomListOnly 
+          widget.showCustomListOnly
               ? (localizations?.favoriteContacts ?? 'Favorite Contacts')
               : (localizations?.selectContact ?? 'Select Contact'),
+          style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFFCAE3F2),
-        foregroundColor: Colors.black,
+        backgroundColor: const Color(0xFF1E1E1E),
+        elevation: 0,
         actions: [
           if (!widget.showCustomListOnly)
             IconButton(
@@ -229,84 +234,80 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                   ),
                 );
               },
-              icon: const Icon(Icons.favorite),
+              icon: const Icon(Icons.favorite, color: Colors.redAccent),
               tooltip: 'Show favorites',
             ),
         ],
       ),
       body: Column(
         children: [
-          // Search bar
+          // 🔍 Modern search bar
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _searchController,
               onChanged: _filterContacts,
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: localizations?.searchContacts ?? 'Search contacts...',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.search, color: Colors.white70),
                 suffixIcon: _isSearching
                     ? IconButton(
-                        onPressed: () {
-                          _searchController.clear();
-                          _filterContacts('');
-                        },
-                        icon: const Icon(Icons.clear),
-                      )
+                  onPressed: () {
+                    _searchController.clear();
+                    _filterContacts('');
+                  },
+                  icon: const Icon(Icons.clear, color: Colors.white70),
+                )
                     : null,
-                border: const OutlineInputBorder(),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: const Color(0xFF2A2A2A),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
-          
-          // Contact list
+
+          // 📞 Contact list
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
                 : _filteredContacts.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _isSearching ? Icons.search_off : Icons.people_outline,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _isSearching
-                                  ? (localizations?.noContactsFound ?? 'No contacts found')
-                                  : (localizations?.noContactsAvailable ?? 'No contacts available'),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            if (!_isSearching && widget.showCustomListOnly)
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text(localizations?.addContacts ?? 'Add Contacts'),
-                                ),
-                              ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _filteredContacts.length,
-                        itemBuilder: (context, index) {
-                          return _buildContactTile(_filteredContacts[index]);
-                        },
-                      ),
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _isSearching ? Icons.search_off : Icons.people_outline,
+                    size: 64,
+                    color: Colors.white54,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _isSearching
+                        ? (localizations?.noContactsFound ?? 'No contacts found')
+                        : (localizations?.noContactsAvailable ?? 'No contacts available'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.white54,
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : ListView.builder(
+              itemCount: _filteredContacts.length,
+              itemBuilder: (context, index) {
+                return _buildContactTile(_filteredContacts[index]);
+              },
+            ),
           ),
         ],
       ),
     );
   }
-} 
+}

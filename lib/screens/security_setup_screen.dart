@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import '../services/biometric_service.dart';
@@ -69,11 +70,11 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
   Future<void> _enableBiometric(BiometricType type) async {
     try {
       print('SecuritySetupScreen - Enabling biometric for type: $type');
-      
+
       // First, try to authenticate to test if biometric is working
       final authResult = await BiometricService.testBiometricAuthentication();
       print('SecuritySetupScreen - Authentication result: $authResult');
-      
+
       if (authResult) {
         // Authentication successful, enable biometric
         await BiometricService.enableBiometric(type);
@@ -182,7 +183,7 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
               onPressed: () {
                 final pin = pinController.text;
                 final confirmPin = confirmPinController.text;
-                
+
                 if (pin.length != 4) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -192,7 +193,7 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
                   );
                   return;
                 }
-                
+
                 if (pin != confirmPin) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -202,7 +203,7 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
                   );
                   return;
                 }
-                
+
                 Navigator.of(context).pop(true);
               },
               child: const Text('Set PIN'),
@@ -293,298 +294,298 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Security Options',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // Debug section
-                  Card(
-                    color: const Color(0xFF2A2A2A),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Debug Information',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text('Biometric Available: $_biometricAvailable'),
-                          Text('Available Types: $_availableBiometrics'),
-                          Text('Current Method: ${_currentSecurityMethod ?? "None"}'),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () async {
-                              await BiometricService.testBiometricSetup();
-                            },
-                            child: const Text('Test Biometric Setup'),
-                          ),
-                          const SizedBox(height: 8),
-                          // Direct Face Recognition button
-                          if (_biometricAvailable && _availableBiometrics.contains('Face Recognition'))
-                            ElevatedButton.icon(
-                              onPressed: () => _enableBiometric(BiometricType.face),
-                              icon: const Icon(Icons.face),
-                              label: const Text('Enable Face Recognition Now'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                        ],
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Security Options',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Debug section
+            Card(
+              color: const Color(0xFF2A2A2A),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Debug Information',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
                       ),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-
-                  // Instructions Card
-                  Card(
-                    color: const Color(0xFF1E3A8A),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.info, color: Colors.white),
-                              SizedBox(width: 8),
-                              Text(
-                                'How to Enable Face Unlock',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            '1. Make sure Face ID is set up on your device\n'
-                            '2. Tap "Enable Face Recognition Now" below\n'
-                            '3. Look at your device when prompted\n'
-                            '4. After setup, sign out and sign back in to test',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 8),
+                    Text('Biometric Available: $_biometricAvailable'),
+                    Text('Available Types: $_availableBiometrics'),
+                    Text('Current Method: ${_currentSecurityMethod ?? "None"}'),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await BiometricService.testBiometricSetup();
+                      },
+                      child: const Text('Test Biometric Setup'),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-
-                  // Security Status Card
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Security Status',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(
-                                _currentSecurityMethod != null
-                                    ? Icons.security
-                                    : Icons.security_outlined,
-                                color: _currentSecurityMethod != null
-                                    ? Colors.green
-                                    : Colors.grey,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _currentSecurityMethod != null
-                                    ? 'Security Enabled (${_currentSecurityMethod})'
-                                    : 'No Security Method Set',
-                                style: TextStyle(
-                                  color: _currentSecurityMethod != null
-                                      ? Colors.green
-                                      : Colors.grey,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Biometric Authentication Section
-                  if (_biometricAvailable) ...[
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Biometric Authentication',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Available: ${_availableBiometrics.join(', ')}',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                            const SizedBox(height: 16),
-                            if (_biometricEnabled)
-                              ElevatedButton.icon(
-                                onPressed: _disableBiometric,
-                                icon: const Icon(Icons.fingerprint),
-                                label: const Text('Disable Biometric'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                ),
-                              )
-                            else
-                              ...(_availableBiometrics.map((biometric) {
-                                BiometricType type;
-                                switch (biometric) {
-                                  case 'Fingerprint':
-                                    type = BiometricType.fingerprint;
-                                    break;
-                                  case 'Face Recognition':
-                                    type = BiometricType.face;
-                                    break;
-                                  case 'Iris':
-                                    type = BiometricType.iris;
-                                    break;
-                                  default:
-                                    type = BiometricType.fingerprint;
-                                }
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: ElevatedButton.icon(
-                                    onPressed: () => _enableBiometric(type),
-                                    icon: Icon(
-                                      biometric == 'Fingerprint'
-                                          ? Icons.fingerprint
-                                          : biometric == 'Face Recognition'
-                                              ? Icons.face
-                                              : Icons.visibility,
-                                    ),
-                                    label: Text('Enable $biometric'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                );
-                              })),
-                          ],
+                    const SizedBox(height: 8),
+                    // Direct Face Recognition button
+                    if (_biometricAvailable && _availableBiometrics.contains('Face Recognition'))
+                      ElevatedButton.icon(
+                        onPressed: () => _enableBiometric(BiometricType.face),
+                        icon: const Icon(Icons.face),
+                        label: const Text('Enable Face Recognition Now'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
                   ],
+                ),
+              ),
+            ),
 
-                  // PIN Code Section
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'PIN Code',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+            const SizedBox(height: 20),
+
+            // Instructions Card
+            Card(
+              color: const Color(0xFF1E3A8A),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.info, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'How to Enable Face Unlock',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _pinSet ? 'PIN is set' : 'No PIN set',
-                            style: TextStyle(
-                              color: _pinSet ? Colors.green : Colors.grey,
-                            ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '1. Make sure Face ID is set up on your device\n'
+                          '2. Tap "Enable Face Recognition Now" below\n'
+                          '3. Look at your device when prompted\n'
+                          '4. After setup, sign out and sign back in to test',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Security Status Card
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Security Status',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          _currentSecurityMethod != null
+                              ? Icons.security
+                              : Icons.security_outlined,
+                          color: _currentSecurityMethod != null
+                              ? Colors.green
+                              : Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _currentSecurityMethod != null
+                              ? 'Security Enabled (${_currentSecurityMethod})'
+                              : 'No Security Method Set',
+                          style: TextStyle(
+                            color: _currentSecurityMethod != null
+                                ? Colors.green
+                                : Colors.grey,
+                            fontWeight: FontWeight.w500,
                           ),
-                          const SizedBox(height: 16),
-                          if (_pinSet)
-                            ElevatedButton.icon(
-                              onPressed: _removePinCode,
-                              icon: const Icon(Icons.lock_open),
-                              label: const Text('Remove PIN'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Biometric Authentication Section
+            if (_biometricAvailable) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Biometric Authentication',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Available: ${_availableBiometrics.join(', ')}',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      if (_biometricEnabled)
+                        ElevatedButton.icon(
+                          onPressed: _disableBiometric,
+                          icon: const Icon(Icons.fingerprint),
+                          label: const Text('Disable Biometric'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                        )
+                      else
+                        ...(_availableBiometrics.map((biometric) {
+                          BiometricType type;
+                          switch (biometric) {
+                            case 'Fingerprint':
+                              type = BiometricType.fingerprint;
+                              break;
+                            case 'Face Recognition':
+                              type = BiometricType.face;
+                              break;
+                            case 'Iris':
+                              type = BiometricType.iris;
+                              break;
+                            default:
+                              type = BiometricType.fingerprint;
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: ElevatedButton.icon(
+                              onPressed: () => _enableBiometric(type),
+                              icon: Icon(
+                                biometric == 'Fingerprint'
+                                    ? Icons.fingerprint
+                                    : biometric == 'Face Recognition'
+                                    ? Icons.face
+                                    : Icons.visibility,
                               ),
-                            )
-                          else
-                            ElevatedButton.icon(
-                              onPressed: _setPinCode,
-                              icon: const Icon(Icons.lock),
-                              label: const Text('Set PIN Code'),
+                              label: Text('Enable $biometric'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
                               ),
                             ),
-                        ],
-                      ),
-                    ),
+                          );
+                        })),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
-                  // Information Section
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Security Information',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            '• Biometric authentication uses your device\'s built-in security features\n'
-                            '• PIN code provides an alternative authentication method\n'
-                            '• You can use both biometric and PIN for maximum security\n'
-                            '• Security is required each time you open the app',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
+            // PIN Code Section
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'PIN Code',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      _pinSet ? 'PIN is set' : 'No PIN set',
+                      style: TextStyle(
+                        color: _pinSet ? Colors.green : Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_pinSet)
+                      ElevatedButton.icon(
+                        onPressed: _removePinCode,
+                        icon: const Icon(Icons.lock_open),
+                        label: const Text('Remove PIN'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      )
+                    else
+                      ElevatedButton.icon(
+                        onPressed: _setPinCode,
+                        icon: const Icon(Icons.lock),
+                        label: const Text('Set PIN Code'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Information Section
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Security Information',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '• Biometric authentication uses your device\'s built-in security features\n'
+                          '• PIN code provides an alternative authentication method\n'
+                          '• You can use both biometric and PIN for maximum security\n'
+                          '• Security is required each time you open the app',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
-} 
+}

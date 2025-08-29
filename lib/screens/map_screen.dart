@@ -45,7 +45,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _showSuggestions = false;
   List<Map<String, dynamic>> _navigationSteps = [];
   int _currentStepIndex = 0;
-  
+
   // Street View variables
   bool _isStreetViewMode = false;
   String? _streetViewUrl;
@@ -212,7 +212,7 @@ class _MapScreenState extends State<MapScreen> {
         });
         return;
       }
-      
+
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
@@ -228,7 +228,7 @@ class _MapScreenState extends State<MapScreen> {
       });
       _positionStream = Geolocator.getPositionStream();
       _positionStream?.listen(
-        (pos) {
+            (pos) {
           if (mounted) {
             _updateUserMarker(pos);
             setState(() {
@@ -464,7 +464,7 @@ class _MapScreenState extends State<MapScreen> {
       final lat = location['lat'] as double;
       final lng = location['lng'] as double;
       final dest = LatLng(lat, lng);
-      
+
       setState(() {
         _destinationController.text = placeDetails['name'] ?? placeDetails['formatted_address'] ?? '';
         _destinationMarker = Marker(
@@ -477,7 +477,7 @@ class _MapScreenState extends State<MapScreen> {
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         );
       });
-      
+
       _mapController?.animateCamera(CameraUpdate.newLatLng(dest));
       if (_currentLatLng != null) {
         _drawRoute(_currentLatLng!, dest);
@@ -491,10 +491,10 @@ class _MapScreenState extends State<MapScreen> {
       final startLng = _currentLatLng!.longitude;
       final endLat = _destinationMarker!.position.latitude;
       final endLng = _destinationMarker!.position.longitude;
-      
+
       // Open in Google Maps
       final url = 'https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$endLat,$endLng&travelmode=driving';
-      
+
       try {
         if (await canLaunchUrl(Uri.parse(url))) {
           await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -525,12 +525,12 @@ class _MapScreenState extends State<MapScreen> {
       _suggestions.clear();
       _showSuggestions = false;
     });
-    
+
     // Reset camera to current location
     if (_currentLatLng != null) {
       _mapController?.animateCamera(CameraUpdate.newLatLng(_currentLatLng!));
     }
-    
+
     Navigator.of(context).pop(); // Close the navigation modal
   }
 
@@ -538,11 +538,11 @@ class _MapScreenState extends State<MapScreen> {
     if (_destinationMarker != null) {
       final lat = _destinationMarker!.position.latitude;
       final lng = _destinationMarker!.position.longitude;
-      
+
       try {
         final apiKey = ApiConfig.googleMapsApiKey;
         final url = 'https://maps.googleapis.com/maps/api/streetview?size=400x300&location=$lat,$lng&key=$apiKey';
-        
+
         setState(() {
           _streetViewUrl = url;
           _streetViewLocation = _destinationMarker!.position;
@@ -688,7 +688,7 @@ class _MapScreenState extends State<MapScreen> {
     if (_destinationMarker != null) {
       final destination = _destinationMarker!.position;
       final currentLocation = _currentLatLng ?? const LatLng(0, 0);
-      
+
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -699,7 +699,7 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       );
-      
+
       if (result != null && result is RouteOption) {
         // Handle selected AI route
         _handleSelectedAIRoute(result);
@@ -713,7 +713,7 @@ class _MapScreenState extends State<MapScreen> {
       _routePoints = route.routePoints;
       _navigationSteps = _convertRouteToSteps(route);
     });
-    
+
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -771,7 +771,7 @@ class _MapScreenState extends State<MapScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               // Route Progress Header
               Container(
                 margin: const EdgeInsets.all(16),
@@ -782,46 +782,46 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 child: Column(
                   children: [
-                                         Text(
-                       AppLocalizations.of(context)?.routeProgress ?? 'ROUTE PROGRESS',
-                       style: const TextStyle(
-                         fontWeight: FontWeight.bold,
-                         fontSize: 16,
-                         color: Colors.black,
-                       ),
-                     ),
+                    Text(
+                      AppLocalizations.of(context)?.routeProgress ?? 'ROUTE PROGRESS',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                                                 Text(
-                           AppLocalizations.of(context)?.currentLocation ?? 'Current Location',
-                           style: const TextStyle(
-                             color: Colors.black,
-                             fontWeight: FontWeight.w500,
-                           ),
-                         ),
-                         Text(
-                           AppLocalizations.of(context)?.destination ?? 'Destination',
-                           style: const TextStyle(
-                             color: Colors.black,
-                             fontWeight: FontWeight.w500,
-                           ),
-                         ),
+                        Text(
+                          AppLocalizations.of(context)?.currentLocation ?? 'Current Location',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          AppLocalizations.of(context)?.destination ?? 'Destination',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                                         Text(
-                       '${AppLocalizations.of(context)?.steps ?? 'Steps'} ${_currentStepIndex + 1}/${_navigationSteps.length}',
-                       style: const TextStyle(
-                         color: Colors.black,
-                         fontSize: 14,
-                       ),
-                     ),
+                    Text(
+                      '${AppLocalizations.of(context)?.steps ?? 'Steps'} ${_currentStepIndex + 1}/${_navigationSteps.length}',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              
+
               // Navigation Content
               Expanded(
                 child: Container(
@@ -842,30 +842,30 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                         child: _isStreetViewMode && _streetViewUrl != null
                             ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  _streetViewUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Center(
-                                      child: Icon(
-                                        Icons.streetview,
-                                        size: 64,
-                                        color: Colors.grey,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : const Center(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            _streetViewUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
                                 child: Icon(
-                                  Icons.map,
+                                  Icons.streetview,
                                   size: 64,
                                   color: Colors.grey,
                                 ),
-                              ),
+                              );
+                            },
+                          ),
+                        )
+                            : const Center(
+                          child: Icon(
+                            Icons.map,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
-                      
+
                       // Navigation Controls
                       Positioned(
                         left: 8,
@@ -880,7 +880,7 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
-                      
+
                       Positioned(
                         right: 8,
                         top: 8,
@@ -894,7 +894,7 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
-                      
+
                       // Street View Toggle Button
                       Positioned(
                         right: 8,
@@ -917,7 +917,7 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
-                      
+
                       // Zoom Controls
                       Positioned(
                         right: 8,
@@ -949,7 +949,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
               ),
-              
+
               // Bottom Navigation Buttons
               Container(
                 padding: const EdgeInsets.all(16),
@@ -967,13 +967,13 @@ class _MapScreenState extends State<MapScreen> {
                               backgroundColor: const Color(0xFF87CEEB),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                                                         child: Text(
-                               AppLocalizations.of(context)?.previous ?? 'PREVIOUS',
-                               style: const TextStyle(
-                                 color: Colors.white,
-                                 fontWeight: FontWeight.bold,
-                               ),
-                             ),
+                            child: Text(
+                              AppLocalizations.of(context)?.previous ?? 'PREVIOUS',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -986,13 +986,13 @@ class _MapScreenState extends State<MapScreen> {
                               backgroundColor: const Color(0xFF4169E1),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                                                         child: Text(
-                               AppLocalizations.of(context)?.next ?? 'NEXT',
-                               style: const TextStyle(
-                                 color: Colors.white,
-                                 fontWeight: FontWeight.bold,
-                               ),
-                             ),
+                            child: Text(
+                              AppLocalizations.of(context)?.next ?? 'NEXT',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1008,13 +1008,13 @@ class _MapScreenState extends State<MapScreen> {
                               backgroundColor: Colors.green,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                                                         child: Text(
-                               AppLocalizations.of(context)?.openInMaps ?? 'OPEN IN MAPS',
-                               style: const TextStyle(
-                                 color: Colors.white,
-                                 fontWeight: FontWeight.bold,
-                               ),
-                             ),
+                            child: Text(
+                              AppLocalizations.of(context)?.openInMaps ?? 'OPEN IN MAPS',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -1025,13 +1025,13 @@ class _MapScreenState extends State<MapScreen> {
                               backgroundColor: Colors.red,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                                                         child: Text(
-                               AppLocalizations.of(context)?.clear ?? 'CLEAR',
-                               style: const TextStyle(
-                                 color: Colors.white,
-                                 fontWeight: FontWeight.bold,
-                               ),
-                             ),
+                            child: Text(
+                              AppLocalizations.of(context)?.clear ?? 'CLEAR',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1366,205 +1366,181 @@ class _MapScreenState extends State<MapScreen> {
                   // ... existing suggestion dropdown ...
                 ],
               ),
-                                ),
-                    // Street View Widget
-                    if (_isStreetViewMode && _streetViewUrl != null)
+            ),
+            // Street View Widget
+            if (_isStreetViewMode && _streetViewUrl != null)
+              Container(
+                height: 250,
+                margin: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                      // Embedded Street View
                       Container(
-                        height: 250,
-                        margin: const EdgeInsets.all(8.0),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
+                        width: double.infinity,
+                        height: double.infinity,
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           child: Stack(
                             children: [
-                              // Embedded Street View
-                              Container(
+                              // Street View content
+                              _showStreetViewImage && _streetViewImageUrl != null
+                                  ? Container(
                                 width: double.infinity,
                                 height: double.infinity,
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Stack(
-                                    children: [
-                                      // Street View content
-                                      _showStreetViewImage && _streetViewImageUrl != null
-                                          ? Container(
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(8),
-                                                child: Image.network(
-                                                  _streetViewImageUrl!,
-                                                  fit: BoxFit.cover,
-                                                  loadingBuilder: (context, child, loadingProgress) {
-                                                    if (loadingProgress == null) return child;
-                                                    return Container(
-                                                      color: Colors.grey[200],
-                                                      child: Center(
-                                                        child: Column(
-                                                          mainAxisAlignment: MainAxisAlignment.center,
-                                                          children: [
-                                                            CircularProgressIndicator(
-                                                              value: loadingProgress.expectedTotalBytes != null
-                                                                  ? loadingProgress.cumulativeBytesLoaded /
-                                                                      loadingProgress.expectedTotalBytes!
-                                                                  : null,
-                                                            ),
-                                                            const SizedBox(height: 8),
-                                                            Text(
-                                                              'Loading Street View...',
-                                                              style: TextStyle(
-                                                                fontSize: 14,
-                                                                color: Colors.grey[600],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return Container(
-                                                      color: Colors.grey[300],
-                                                      child: Center(
-                                                        child: Column(
-                                                          mainAxisAlignment: MainAxisAlignment.center,
-                                                          children: [
-                                                            Icon(
-                                                              Icons.error,
-                                                              size: 48,
-                                                              color: Colors.red[600],
-                                                            ),
-                                                            const SizedBox(height: 8),
-                                                            Text(
-                                                              'Failed to load Street View',
-                                                              style: TextStyle(
-                                                                fontSize: 16,
-                                                                fontWeight: FontWeight.bold,
-                                                                color: Colors.red[600],
-                                                              ),
-                                                            ),
-                                                            const SizedBox(height: 4),
-                                                            Text(
-                                                              'No Street View available at this location',
-                                                              style: TextStyle(
-                                                                fontSize: 12,
-                                                                color: Colors.grey[600],
-                                                              ),
-                                                              textAlign: TextAlign.center,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
+                                  child: Image.network(
+                                    _streetViewImageUrl!,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        color: Colors.grey[200],
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              CircularProgressIndicator(
+                                                value: loadingProgress.expectedTotalBytes != null
+                                                    ? loadingProgress.cumulativeBytesLoaded /
+                                                    loadingProgress.expectedTotalBytes!
+                                                    : null,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Loading Street View...',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey[600],
                                                 ),
                                               ),
-                                            )
-                                          : Container(
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                              color: Colors.grey[300],
-                                              child: Center(
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.streetview,
-                                                      size: 48,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                                    const SizedBox(height: 8),
-                                                    Text(
-                                                      'Street View',
-                                                      style: TextStyle(
-                                                        fontSize: 18,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: Colors.grey[600],
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[600],
-                                                      ),
-                                                      textAlign: TextAlign.center,
-                                                    ),
-                                                    const SizedBox(height: 12),
-                                                    Row(
-                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                      children: [
-                                                        ElevatedButton.icon(
-                                                          onPressed: _openStreetView,
-                                                          icon: const Icon(Icons.open_in_new),
-                                                          label: const Text('Open in Maps'),
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: Colors.blue,
-                                                            foregroundColor: Colors.white,
-                                                          ),
-                                                        ),
-                                                        ElevatedButton.icon(
-                                                          onPressed: () {
-                                                            if (_streetViewLocation != null) {
-                                                              Navigator.push(
-                                                                context,
-                                                                MaterialPageRoute(
-                                                                  builder: (context) => StreetViewScreen(
-                                                                    startLocation: _currentLatLng ?? _streetViewLocation!,
-                                                                    endLocation: _destinationMarker?.position ?? _streetViewLocation!,
-                                                                    routePoints: _routePoints.isNotEmpty ? _routePoints : [_streetViewLocation!],
-                                                                    streetViewUrl: _streetViewUrl,
-                                                                    streetViewImageUrl: _streetViewImageUrl,
-                                                                  ),
-                                                                ),
-                                                              );
-                                                            }
-                                                          },
-                                                          icon: const Icon(Icons.image),
-                                                          label: const Text('Show Image'),
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: Colors.green,
-                                                            foregroundColor: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey[300],
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.error,
+                                                size: 48,
+                                                color: Colors.red[600],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Failed to load Street View',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.red[600],
                                                 ),
                                               ),
-                                            ),
-                                    ],
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'No Street View available at this location',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              ),
-                              // Close button
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap: _toggleStreetView,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
+                              )
+                                  : Container(
+                                width: double.infinity,
+                                height: double.infinity,
+                                color: Colors.grey[300],
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.streetview,
+                                        size: 48,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Street View',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          ElevatedButton.icon(
+                                            onPressed: _openStreetView,
+                                            icon: const Icon(Icons.open_in_new),
+                                            label: const Text('Open in Maps'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.blue,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                          ),
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              if (_streetViewLocation != null) {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => StreetViewScreen(
+                                                      startLocation: _currentLatLng ?? _streetViewLocation!,
+                                                      endLocation: _destinationMarker?.position ?? _streetViewLocation!,
+                                                      routePoints: _routePoints.isNotEmpty ? _routePoints : [_streetViewLocation!],
+                                                      streetViewUrl: _streetViewUrl,
+                                                      streetViewImageUrl: _streetViewImageUrl,
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(Icons.image),
+                                            label: const Text('Show Image'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -1572,15 +1548,39 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                       ),
-                    if (_navigationSteps.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.navigation),
-                          label: const Text('Navigate'),
-                          onPressed: _showNavigationModal,
+                      // Close button
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: _toggleStreetView,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+            if (_navigationSteps.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.navigation),
+                  label: const Text('Navigate'),
+                  onPressed: _showNavigationModal,
+                ),
+              ),
           ],
         ),
       );
@@ -1613,239 +1613,239 @@ class _MapScreenState extends State<MapScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-              : Column(
+          ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+          : Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _destinationController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Enter destination',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  style: const TextStyle(color: Colors.black), // Make input text black
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: () => _openPlaceSearch(),
-                                icon: const Icon(Icons.search, color: Colors.blue),
-                                tooltip: 'Search Places',
-                              ),
-                            ],
-                          ),
-                          if (_showSuggestions && _suggestions.isNotEmpty)
-                            Container(
-                              color: Colors.white,
-                              height: 200,
-                              child: ListView.builder(
-                                itemCount: _suggestions.length,
-                                itemBuilder: (context, index) {
-                                  final suggestion = _suggestions[index];
-                                  return ListTile(
-                                    title: Text(
-                                      suggestion['description'],
-                                      style: const TextStyle(color: Colors.black), // Make suggestion text black
-                                    ),
-                                    onTap: () => _onSuggestionTap(suggestion),
-                                  );
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
                     Expanded(
-                      child: Stack(
-                        children: [
-                          GoogleMap(
-                            initialCameraPosition: _initialPosition!,
-                            onMapCreated: (controller) {
-                              _mapController = controller;
-                            },
-                            onTap: _onMapTap,
-                            myLocationEnabled: true,
-                            myLocationButtonEnabled: true,
-                            markers: {
-                              if (_userMarker != null) _userMarker!,
-                              if (_destinationMarker != null) _destinationMarker!,
-                            },
-                            polylines: _routePolyline != null ? {_routePolyline!} : {},
-                          ),
-                          // Street View Toggle Button
-                          Positioned(
-                            top: 16,
-                            right: 16,
-                            child: FloatingActionButton(
-                              onPressed: _toggleStreetView,
-                              backgroundColor: _isStreetViewMode ? Colors.orange : Colors.blue,
-                              child: Icon(
-                                _isStreetViewMode ? Icons.map : Icons.streetview,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          // SMS Share Button
-                          Positioned(
-                            top: 16,
-                            left: 16,
-                            child: FloatingActionButton(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => SmsShareWidget(
-                                    currentLocation: _currentLatLng,
-                                    title: AppLocalizations.of(context)?.shareLocation ?? 'Share Location',
-                                  ),
-                                );
-                              },
-                              backgroundColor: Colors.green,
-                              child: const Icon(
-                                Icons.share_location,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          // Search Places Button
-                          Positioned(
-                            top: 80,
-                            left: 16,
-                            child: FloatingActionButton(
-                              onPressed: _openPlaceSearch,
-                              backgroundColor: const Color(0xFFCAE3F2),
-                              child: const Icon(
-                                Icons.search,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: TextField(
+                        controller: _destinationController,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter destination',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(),
+                        ),
+                        style: const TextStyle(color: Colors.black), // Make input text black
                       ),
                     ),
-                    if (_destinationMarker != null)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            // AI Route Selection Button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: _destinationMarker != null ? _openAIRouteSelection : null,
-                                icon: const Icon(Icons.psychology, color: Colors.white),
-                                label: Text(
-                                  '🤖 AI Route Selection',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _destinationMarker != null 
-                                      ? const Color(0xFF9C27B0) 
-                                      : Colors.grey,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Navigation Button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: _destinationMarker != null ? _startInAppNavigation : null,
-                                icon: const Icon(Icons.navigation, color: Colors.white),
-                                label: Text(
-                                  AppLocalizations.of(context)?.startNavigation ?? 'Start Navigation',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _destinationMarker != null 
-                                      ? const Color(0xFF4169E1) 
-                                      : Colors.grey,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Detailed Navigation Button (if route is calculated)
-                            if (_navigationSteps.isNotEmpty)
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _showNavigationModal,
-                                  icon: const Icon(Icons.directions, color: Colors.white),
-                                  label: Text(
-                                    AppLocalizations.of(context)?.viewDirections ?? 'View Directions',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (_navigationSteps.isNotEmpty) const SizedBox(height: 8),
-                            // Street View Button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: _toggleStreetView,
-                                icon: Icon(
-                                  _isStreetViewMode ? Icons.map : Icons.streetview,
-                                  color: Colors.white,
-                                ),
-                                label: Text(
-                                  _isStreetViewMode 
-                                      ? (AppLocalizations.of(context)?.switchToMap ?? 'Switch to Map')
-                                      : (AppLocalizations.of(context)?.streetView ?? 'Street View'),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isStreetViewMode 
-                                      ? Colors.orange 
-                                      : const Color(0xFFCAE3F2),
-                                  foregroundColor: _isStreetViewMode ? Colors.white : Colors.black,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => _openPlaceSearch(),
+                      icon: const Icon(Icons.search, color: Colors.blue),
+                      tooltip: 'Search Places',
+                    ),
                   ],
                 ),
+                if (_showSuggestions && _suggestions.isNotEmpty)
+                  Container(
+                    color: Colors.white,
+                    height: 200,
+                    child: ListView.builder(
+                      itemCount: _suggestions.length,
+                      itemBuilder: (context, index) {
+                        final suggestion = _suggestions[index];
+                        return ListTile(
+                          title: Text(
+                            suggestion['description'],
+                            style: const TextStyle(color: Colors.black), // Make suggestion text black
+                          ),
+                          onTap: () => _onSuggestionTap(suggestion),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                GoogleMap(
+                  initialCameraPosition: _initialPosition!,
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
+                  onTap: _onMapTap,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: true,
+                  markers: {
+                    if (_userMarker != null) _userMarker!,
+                    if (_destinationMarker != null) _destinationMarker!,
+                  },
+                  polylines: _routePolyline != null ? {_routePolyline!} : {},
+                ),
+                // Street View Toggle Button
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: FloatingActionButton(
+                    onPressed: _toggleStreetView,
+                    backgroundColor: _isStreetViewMode ? Colors.orange : Colors.blue,
+                    child: Icon(
+                      _isStreetViewMode ? Icons.map : Icons.streetview,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                // SMS Share Button
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => SmsShareWidget(
+                          currentLocation: _currentLatLng,
+                          title: AppLocalizations.of(context)?.shareLocation ?? 'Share Location',
+                        ),
+                      );
+                    },
+                    backgroundColor: Colors.green,
+                    child: const Icon(
+                      Icons.share_location,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                // Search Places Button
+                Positioned(
+                  top: 80,
+                  left: 16,
+                  child: FloatingActionButton(
+                    onPressed: _openPlaceSearch,
+                    backgroundColor: const Color(0xFFCAE3F2),
+                    child: const Icon(
+                      Icons.search,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_destinationMarker != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // AI Route Selection Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _destinationMarker != null ? _openAIRouteSelection : null,
+                      icon: const Icon(Icons.psychology, color: Colors.white),
+                      label: Text(
+                        '🤖 AI Route Selection',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _destinationMarker != null
+                            ? const Color(0xFF9C27B0)
+                            : Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Navigation Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _destinationMarker != null ? _startInAppNavigation : null,
+                      icon: const Icon(Icons.navigation, color: Colors.white),
+                      label: Text(
+                        AppLocalizations.of(context)?.startNavigation ?? 'Start Navigation',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _destinationMarker != null
+                            ? const Color(0xFF4169E1)
+                            : Colors.grey,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Detailed Navigation Button (if route is calculated)
+                  if (_navigationSteps.isNotEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _showNavigationModal,
+                        icon: const Icon(Icons.directions, color: Colors.white),
+                        label: Text(
+                          AppLocalizations.of(context)?.viewDirections ?? 'View Directions',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_navigationSteps.isNotEmpty) const SizedBox(height: 8),
+                  // Street View Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _toggleStreetView,
+                      icon: Icon(
+                        _isStreetViewMode ? Icons.map : Icons.streetview,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        _isStreetViewMode
+                            ? (AppLocalizations.of(context)?.switchToMap ?? 'Switch to Map')
+                            : (AppLocalizations.of(context)?.streetView ?? 'Street View'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isStreetViewMode
+                            ? Colors.orange
+                            : const Color(0xFFCAE3F2),
+                        foregroundColor: _isStreetViewMode ? Colors.white : Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
-} 
+}

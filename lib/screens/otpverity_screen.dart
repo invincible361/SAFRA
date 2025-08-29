@@ -80,16 +80,22 @@ class _OtpScreenState extends State<OtpScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: const BackButton(color: Colors.white),
-        title: const Text('Email Verification'),
+        title: const Text(
+          'Email Verification',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // Avatar
             CircleAvatar(
-              radius: 40,
+              radius: 42,
               backgroundColor: const Color(0xFFCAE3F2),
               child: Text(
                 initials,
@@ -100,15 +106,26 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+
+            const SizedBox(height: 30),
+
+            // Card Container
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: const Color(0xFF1C1F22),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text(
                     'Check your email',
@@ -120,30 +137,59 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'A confirmation link has been sent to your email address. Please check your inbox and click the link to verify your account.',
-                    style: TextStyle(color: Colors.white70),
+                    'We have sent a confirmation link to your email. Please verify your account.',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
+
+                  // Open Email Button
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      // Try to open the default email app
-                      // (This is a placeholder, as actual implementation may require a package like url_launcher)
+                    onPressed: () {
+                      // TODO: Implement using url_launcher
                     },
-                    icon: const Icon(Icons.email),
-                    label: const Text('Open Email App'),
+                    icon: const Icon(Icons.email_outlined),
+                    label: const Text(
+                      'Open Email App',
+                      style: TextStyle(fontSize: 16),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFCAE3F2),
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+
+                  const SizedBox(height: 20),
+
+                  // Countdown Timer / Resend
+                  _resendAvailable
+                      ? TextButton(
+                    onPressed: _resendOtp,
+                    child: const Text(
+                      "Resend OTP",
+                      style: TextStyle(
+                        color: Color(0xFFCAE3F2),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                      : Text(
+                    "Resend available in $_secondsRemaining s",
+                    style: const TextStyle(
+                        color: Colors.white60, fontSize: 14),
+                  ),
+
+                  const SizedBox(height: 12),
+
                   const Text(
-                    'Didn\'t receive the email? Check your spam folder or try registering again.',
-                    style: TextStyle(color: Colors.white60, fontSize: 13),
+                    'Didn\'t receive it? Check your spam folder or try again.',
+                    style: TextStyle(color: Colors.white54, fontSize: 13),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

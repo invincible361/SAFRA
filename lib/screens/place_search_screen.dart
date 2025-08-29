@@ -71,18 +71,18 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
       final apiKey = ApiConfig.googleMapsApiKey;
       final url = Uri.parse(
         'https://maps.googleapis.com/maps/api/place/autocomplete/json'
-        '?input=${Uri.encodeComponent(query)}'
-        '&key=$apiKey'
-        '&types=establishment|geocode'
-        '&components=country:in'
+            '?input=${Uri.encodeComponent(query)}'
+            '&key=$apiKey'
+            '&types=establishment|geocode'
+            '&components=country:in',
       );
 
       final response = await http.get(url);
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final predictions = data['predictions'] as List<dynamic>;
-        
+
         setState(() {
           _suggestions = predictions.map((prediction) {
             return {
@@ -100,7 +100,7 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
         });
       }
     } catch (e) {
-      print('Error searching places: $e');
+      debugPrint('Error searching places: $e');
       setState(() {
         _suggestions.clear();
         _isLoading = false;
@@ -113,17 +113,17 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
       final apiKey = ApiConfig.googleMapsApiKey;
       final url = Uri.parse(
         'https://maps.googleapis.com/maps/api/place/details/json'
-        '?place_id=$placeId'
-        '&fields=name,formatted_address,geometry,place_id'
-        '&key=$apiKey'
+            '?place_id=$placeId'
+            '&fields=name,formatted_address,geometry,place_id'
+            '&key=$apiKey',
       );
 
       final response = await http.get(url);
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final result = data['result'];
-        
+
         if (result != null) {
           final placeDetails = {
             'place_id': result['place_id'],
@@ -131,15 +131,18 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
             'formatted_address': result['formatted_address'],
             'geometry': result['geometry'],
           };
-          
+
           widget.onPlaceSelected(placeDetails);
           Navigator.of(context).pop();
         }
       }
     } catch (e) {
-      print('Error getting place details: $e');
+      debugPrint('Error getting place details: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error getting place details')),
+        const SnackBar(
+          content: Text('Error getting place details'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -147,11 +150,11 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    
+
     return Scaffold(
-      backgroundColor: const Color(0xFF111416),
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A1D21),
+        backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -159,14 +162,14 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
         ),
         title: Text(
           localizations?.searchPlaces ?? 'Search Places',
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: Column(
         children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.all(16),
+          // 🔍 Modern Search Bar
+          Padding(
+            padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
@@ -174,77 +177,92 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: localizations?.searchForPlaces ?? 'Search for places...',
-                hintStyle: const TextStyle(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                hintStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.search, color: Colors.white70),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _suggestions.clear();
-                            _showSuggestions = false;
-                          });
-                        },
-                      )
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _suggestions.clear();
+                      _showSuggestions = false;
+                    });
+                  },
+                  icon: const Icon(Icons.clear, color: Colors.white70),
+                )
                     : null,
                 filled: true,
-                fillColor: const Color(0xFF1A1D21),
+                fillColor: const Color(0xFF2A2A2A),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFCAE3F2), width: 2),
                 ),
               ),
             ),
           ),
-          
-          // Loading indicator
+
+          // Loader
           if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFCAE3F2)),
-                ),
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(color: Colors.white),
               ),
             ),
-          
-          // Suggestions list
+
+          // Results
           if (_showSuggestions && !_isLoading)
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _suggestions.isEmpty
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.search_off, size: 64, color: Colors.white38),
+                    const SizedBox(height: 12),
+                    Text(
+                      localizations?.noPlacesFound ?? 'No places found',
+                      style: const TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                  ],
+                ),
+              )
+                  : ListView.builder(
                 itemCount: _suggestions.length,
                 itemBuilder: (context, index) {
                   final suggestion = _suggestions[index];
-                  final structuredFormatting = suggestion['structured_formatting'];
-                  final mainText = structuredFormatting['main_text'] ?? '';
-                  final secondaryText = structuredFormatting['secondary_text'] ?? '';
-                  
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    color: const Color(0xFF1A1D21),
+                  final formatting = suggestion['structured_formatting'];
+                  final mainText = formatting['main_text'] ?? '';
+                  final secondaryText = formatting['secondary_text'] ?? '';
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2A2A2A),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
                     child: ListTile(
-                      leading: const Icon(
-                        Icons.location_on,
-                        color: Color(0xFFCAE3F2),
-                      ),
+                      leading: const Icon(Icons.location_on, color: Color(0xFFCAE3F2)),
                       title: Text(
                         mainText,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: secondaryText.isNotEmpty
                           ? Text(
-                              secondaryText,
-                              style: const TextStyle(color: Colors.grey),
-                            )
+                        secondaryText,
+                        style: const TextStyle(color: Colors.white54),
+                      )
                           : null,
                       onTap: () => _getPlaceDetails(suggestion['place_id']),
                     ),
@@ -252,33 +270,8 @@ class _PlaceSearchScreenState extends State<PlaceSearchScreen> {
                 },
               ),
             ),
-          
-          // No results message
-          if (_showSuggestions && !_isLoading && _suggestions.isEmpty && _searchController.text.isNotEmpty)
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.search_off,
-                      size: 64,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      localizations?.noPlacesFound ?? 'No places found',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
-} 
+}

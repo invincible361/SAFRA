@@ -28,6 +28,7 @@ dependencies:
   http: ^1.1.0
   contacts_service: ^0.6.3
   flutter_sms: ^2.3.3
+  google_fonts: ^6.1.0
 
 dev_dependencies:
   flutter_test:
