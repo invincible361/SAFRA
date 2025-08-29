@@ -672,16 +672,22 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _openGoogleMapsNavigation() {
-    if (_destinationMarker != null) {
-      final destination = _destinationMarker!.position;
-      final currentLocation = _currentLatLng ?? const LatLng(0, 0);
-      
-      // Create Google Maps navigation URL
-      final url = 'https://www.google.com/maps/dir/?api=1&origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destination.latitude},${destination.longitude}&travelmode=driving';
-      
-      // Launch Google Maps
-      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  Future<void> _startInAppNavigation() async {
+    if (_destinationMarker == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please set a destination first')),
+      );
+      return;
+    }
+
+    // Ensure we have a computed route and steps
+    if ((_routePolyline == null || _navigationSteps.isEmpty) && _currentLatLng != null) {
+      await _drawRoute(_currentLatLng!, _destinationMarker!.position);
+    }
+
+    // Open in-app navigation modal
+    if (mounted) {
+      _showNavigationModal();
     }
   }
 
@@ -1765,7 +1771,7 @@ class _MapScreenState extends State<MapScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: _destinationMarker != null ? _openGoogleMapsNavigation : null,
+                                onPressed: _destinationMarker != null ? _startInAppNavigation : null,
                                 icon: const Icon(Icons.navigation, color: Colors.white),
                                 label: Text(
                                   AppLocalizations.of(context)?.startNavigation ?? 'Start Navigation',
