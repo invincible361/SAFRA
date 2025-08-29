@@ -175,18 +175,60 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     if (session != null) {
       print('Session user email: ${session.user?.email ?? "no email"}');
       print('Session user ID: ${session.user?.id ?? "no id"}');
-    }
-    
-    // Always go to login page on app startup (no biometric, no session check)
-    print('App starting - always going to login page');
-    if (mounted) {
-      setState(() {
-        _currentScreen = const LoginScreen();
-        _isLoading = false;
-      });
-      print('Successfully set current screen to LoginScreen (app startup)');
+      
+      // User is already authenticated, check if biometric security is needed
+      AppLifecycleService().setAuthenticated(true);
+      await _checkStartupBiometric();
     } else {
-      print('Widget not mounted when trying to set LoginScreen (app startup)');
+      // No session, go to login page
+      print('App starting - no session, going to login page');
+      if (mounted) {
+        setState(() {
+          _currentScreen = const LoginScreen();
+          _isLoading = false;
+        });
+        print('Successfully set current screen to LoginScreen (app startup)');
+      }
+    }
+  }
+
+  Future<void> _checkStartupBiometric() async {
+    try {
+      print('Main: Checking if startup biometric authentication is needed...');
+      
+      final isSecurityEnabled = await BiometricService.isSecurityEnabled();
+      if (isSecurityEnabled) {
+        print('Main: Security enabled, triggering startup biometric check');
+        await _handleBiometricAuthentication();
+        
+        // If biometric succeeds, go to map screen
+        if (mounted) {
+          setState(() {
+            _currentScreen = const MapScreen();
+            _isLoading = false;
+          });
+          print('Successfully set current screen to MapScreen after biometric check');
+        }
+      } else {
+        // No security enabled, go directly to map screen
+        print('Main: No security enabled, going directly to map screen');
+        if (mounted) {
+          setState(() {
+            _currentScreen = const MapScreen();
+            _isLoading = false;
+          });
+          print('Successfully set current screen to MapScreen (no security)');
+        }
+      }
+    } catch (e) {
+      print('Main: Error during startup biometric check: $e');
+      // On error, go to map screen (user is authenticated)
+      if (mounted) {
+        setState(() {
+          _currentScreen = const MapScreen();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -200,11 +242,116 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
   Future<void> _handleAppResumed() async {
     try {
-      print('Main: App resumed, letting AppLifecycleService handle biometric check');
-      // AppLifecycleService will handle biometric check if needed
+      print('Main: App resumed, checking if biometric authentication is needed');
+      
+      // Check if we need to show biometric authentication
+      final isSecurityEnabled = await BiometricService.isSecurityEnabled();
+      if (isSecurityEnabled && AppLifecycleService().wasSuspended && AppLifecycleService().isAuthenticated) {
+        print('Main: Security enabled and app was suspended while authenticated, triggering biometric check');
+        await _handleBiometricAuthentication();
+      }
     } catch (e) {
       print('Error in _handleAppResumed: $e');
     }
+  }
+
+  Future<void> _handleBiometricAuthentication() async {
+    try {
+      print('Main: Handling biometric authentication...');
+      
+      final biometricEnabled = await BiometricService.isBiometricEnabled();
+      final pinSet = await BiometricService.isPinSet();
+      
+      if (biometricEnabled) {
+        // Try biometric authentication
+        print('Main: Attempting biometric authentication...');
+        final success = await BiometricService.authenticateWithBiometric();
+        
+        if (success) {
+          print('Main: Biometric authentication successful');
+          // User can continue using the app
+        } else {
+          print('Main: Biometric authentication failed, redirecting to login');
+          _redirectToLogin();
+        }
+      } else if (pinSet) {
+        // Show PIN authentication dialog
+        print('Main: Showing PIN authentication dialog');
+        _showPinAuthenticationDialog();
+      } else {
+        print('Main: No security method available');
+      }
+    } catch (e) {
+      print('Main: Error during biometric authentication: $e');
+      _redirectToLogin();
+    }
+  }
+
+  void _showPinAuthenticationDialog() {
+    if (!mounted) return;
+    
+    final pinController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must authenticate to continue
+      builder: (context) => AlertDialog(
+        title: const Text('Security Check Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Please enter your PIN to continue using the app.'),
+            const SizedBox(height: 20),
+            TextField(
+              controller: pinController,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'PIN',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () async {
+              final enteredPin = pinController.text;
+              if (enteredPin.isNotEmpty) {
+                final success = await BiometricService.authenticateWithPin(enteredPin);
+                if (success) {
+                  Navigator.pop(context);
+                  print('Main: PIN authentication successful');
+                } else {
+                  // Show error and keep dialog open
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Incorrect PIN. Please try again.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _redirectToLogin() {
+    if (!mounted) return;
+    
+    print('Main: Redirecting to login screen');
+    setState(() {
+      _currentScreen = const LoginScreen();
+    });
+    
+    // Clear authentication state
+    AppLifecycleService().setAuthenticated(false);
+    
+    // Sign out the user
+    Supabase.instance.client.auth.signOut();
   }
 
   Future<void> _checkBiometricAndNavigate() async {
