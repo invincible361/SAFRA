@@ -6,6 +6,10 @@ class AppColors {
   static const Color backgroundBottom = Color(0xFF2B3D80);
   static const Color surface = Color(0xFF1E2A47);
   static const Color cardBackground = Color(0xFF2A2A2A);
+  static const Color darkBackground = Color(0xFF121212);
+  static const Color appBarBackground = Color(0xFF1F1F1F);
+  static const Color postInputBackground = Color(0xFF1E1E1E);
+  static const Color postCardBackground = Color(0xFF1F1F1F);
 
   // Accent Colors
   static const Color primaryAccent = Color(0xFF6C63FF); // neon purple

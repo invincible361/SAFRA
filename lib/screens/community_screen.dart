@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_colors.dart';
 
 class CommunityScreen extends StatefulWidget {
   const CommunityScreen({Key? key}) : super(key: key);
@@ -44,134 +45,157 @@ class _CommunityScreenState extends State<CommunityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Dark background
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F1F1F),
-        elevation: 0,
-        title: const Text(
-          "Community",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.backgroundGradient,
         ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // ======== Post Input Box ========
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.teal,
-                      child: Icon(Icons.person, color: Colors.white),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // App Bar
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _postController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        hintText: "Share something with the community...",
-                        hintStyle: TextStyle(color: Colors.white70),
-                        border: InputBorder.none,
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Community",
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: _addPost,
-                    icon: const Icon(Icons.send, color: Colors.teal),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
-
-          // ======== Community Feed ========
-          Expanded(
-            child: ListView.builder(
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                return Card(
-                  color: const Color(0xFF1F1F1F),
-                  margin:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Username + Time
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.teal.withOpacity(0.2),
-                              child: const Icon(Icons.person,
-                                  color: Colors.teal),
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  post["username"]!,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                Text(
-                                  post["time"]!,
-                                  style: const TextStyle(
-                                    color: Colors.white60,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        // Post Content
-                        Text(
-                          post["content"]!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+              // Content
+              Expanded(
+                child: Column(
+                  children: [
+                    // ======== Post Input Box ========
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.glassBackground,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.glassBorder,
+                            width: 1,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        // Like & Comment Buttons
-                        Row(
+                        child: Row(
                           children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: const Icon(Icons.thumb_up_alt_outlined,
-                                  color: Colors.white70, size: 20),
+                            const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: CircleAvatar(
+                                backgroundColor: AppColors.primaryAccent,
+                                child: Icon(Icons.person, color: AppColors.textPrimary),
+                              ),
                             ),
-                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _postController,
+                                style: const TextStyle(color: AppColors.textPrimary),
+                                decoration: const InputDecoration(
+                                  hintText: "Share something with the community...",
+                                  hintStyle: TextStyle(color: AppColors.textSecondary),
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
                             IconButton(
-                              onPressed: () {},
-                              icon: const Icon(Icons.comment_outlined,
-                                  color: Colors.white70, size: 20),
+                              onPressed: _addPost,
+                              icon: const Icon(Icons.send, color: AppColors.primaryAccent),
                             ),
                           ],
                         ),
+                      ),
+                    ),
+
+                    // ======== Community Feed ========
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: posts.length,
+                        itemBuilder: (context, index) {
+                          final post = posts[index];
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.glassBackground,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.glassBorder,
+                                width: 1,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Username + Time
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: AppColors.primaryAccent.withOpacity(0.2),
+                                        child: Icon(Icons.person,
+                                            color: AppColors.primaryAccent),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            post["username"]!,
+                                            style: const TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          Text(
+                                            post["time"]!,
+                                            style: const TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  // Post Content
+                                  Text(
+                                    post["content"]!,
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Like & Comment Buttons
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        onPressed: () {},
+                                        icon: const Icon(Icons.thumb_up_alt_outlined,
+                                            color: AppColors.textSecondary, size: 20),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        onPressed: () {},
+                                        icon: const Icon(Icons.comment_outlined,
+                                            color: AppColors.textSecondary, size: 20),
+                                      ),
+                                    ],
+                                  ),
                       ],
                     ),
                   ),
