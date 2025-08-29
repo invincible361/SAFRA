@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/main_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -131,17 +132,17 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
       print('Is session not null: ${session != null}');
       
       if (event == AuthChangeEvent.signedIn && session != null) {
-        // User is signed in, set authenticated state and go to map screen (no biometric check)
-        print('User signed in, setting authenticated state and navigating to map screen');
+        // User is signed in, set authenticated state and go to dashboard screen (no biometric check)
+        print('User signed in, setting authenticated state and navigating to dashboard screen');
         AppLifecycleService().setAuthenticated(true);
         if (mounted) {
           setState(() {
-            _currentScreen = const MapScreen();
+            _currentScreen = const DashboardScreen();
             _isLoading = false;
           });
-          print('Successfully set current screen to MapScreen');
+          print('Successfully set current screen to DashboardScreen');
         } else {
-          print('Widget not mounted when trying to navigate to MapScreen');
+          print('Widget not mounted when trying to navigate to DashboardScreen');
         }
       } else if (event == AuthChangeEvent.signedOut) {
         // User signed out, clear authenticated state and go to login
@@ -201,31 +202,31 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
         print('Main: Security enabled, triggering startup biometric check');
         await _handleBiometricAuthentication();
         
-        // If biometric succeeds, go to map screen
+        // If biometric succeeds, go to dashboard screen
         if (mounted) {
           setState(() {
-            _currentScreen = const MapScreen();
+            _currentScreen = const DashboardScreen();
             _isLoading = false;
           });
-          print('Successfully set current screen to MapScreen after biometric check');
+          print('Successfully set current screen to DashboardScreen after biometric check');
         }
       } else {
-        // No security enabled, go directly to map screen
-        print('Main: No security enabled, going directly to map screen');
+        // No security enabled, go directly to dashboard screen
+        print('Main: No security enabled, going directly to dashboard screen');
         if (mounted) {
           setState(() {
-            _currentScreen = const MapScreen();
+            _currentScreen = const DashboardScreen();
             _isLoading = false;
           });
-          print('Successfully set current screen to MapScreen (no security)');
+          print('Successfully set current screen to DashboardScreen (no security)');
         }
       }
     } catch (e) {
       print('Main: Error during startup biometric check: $e');
-      // On error, go to map screen (user is authenticated)
+      // On error, go to dashboard screen (user is authenticated)
       if (mounted) {
         setState(() {
-          _currentScreen = const MapScreen();
+          _currentScreen = const DashboardScreen();
           _isLoading = false;
         });
       }
@@ -371,10 +372,10 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
             _isLoading = false;
           });
         } else {
-          // No security enabled, go directly to map screen (user is already authenticated)
-          print('No security enabled, going directly to map screen');
+          // No security enabled, go directly to dashboard screen (user is already authenticated)
+          print('No security enabled, going directly to dashboard screen');
           setState(() {
-            _currentScreen = const MapScreen();
+            _currentScreen = const DashboardScreen();
             _isLoading = false;
           });
         }
@@ -383,10 +384,10 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
       }
     } catch (e) {
       print('Error in _checkBiometricAndNavigate: $e');
-      // If there's an error, go to map screen (user is authenticated)
+      // If there's an error, go to dashboard screen (user is authenticated)
       if (mounted) {
         setState(() {
-          _currentScreen = const MapScreen();
+          _currentScreen = const DashboardScreen();
           _isLoading = false;
         });
       }

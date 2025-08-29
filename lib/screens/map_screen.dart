@@ -1685,6 +1685,7 @@ class _MapScreenState extends State<MapScreen> {
                   top: 16,
                   right: 16,
                   child: FloatingActionButton(
+                    heroTag: "street_view_toggle",
                     onPressed: _toggleStreetView,
                     backgroundColor: _isStreetViewMode ? Colors.orange : Colors.blue,
                     child: Icon(
@@ -1698,6 +1699,7 @@ class _MapScreenState extends State<MapScreen> {
                   top: 16,
                   left: 16,
                   child: FloatingActionButton(
+                    heroTag: "sms_share",
                     onPressed: () {
                       showDialog(
                         context: context,
@@ -1719,6 +1721,7 @@ class _MapScreenState extends State<MapScreen> {
                   top: 80,
                   left: 16,
                   child: FloatingActionButton(
+                    heroTag: "search_places",
                     onPressed: _openPlaceSearch,
                     backgroundColor: const Color(0xFFCAE3F2),
                     child: const Icon(

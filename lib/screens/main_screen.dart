@@ -81,7 +81,10 @@ class DashboardScreen extends StatelessWidget {
       }) {
     return GestureDetector(
       onTap: () {
-        // TODO: Add navigation to respective screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => page),
+        );
       },
       child: Card(
         color: const Color(0xFF2A2A2A),
