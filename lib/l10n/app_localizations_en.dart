@@ -469,4 +469,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get highTraffic => 'High Traffic';
+
+  @override
+  String get pleaseSetDestination => 'Please set a destination first';
+
+  @override
+  String get loadingRoute => 'Loading route...';
+
+  @override
+  String get routeLoaded => 'Route loaded successfully!';
+
+  @override
+  String get errorLoadingRoute => 'Error loading route';
 }

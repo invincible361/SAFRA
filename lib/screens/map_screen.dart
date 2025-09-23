@@ -541,14 +541,43 @@ class _MapScreenState extends State<MapScreen> {
 
       try {
         final apiKey = ApiConfig.googleMapsApiKey;
-        final url = 'https://maps.googleapis.com/maps/api/streetview?size=400x300&location=$lat,$lng&key=$apiKey';
+        final url = 'https://maps.googleapis.com/maps/api/streetview?size=800x600&location=$lat,$lng&key=$apiKey&heading=210&pitch=10&fov=90&source=outdoor';
 
         setState(() {
           _streetViewUrl = url;
+          _streetViewImageUrl = url;
           _streetViewLocation = _destinationMarker!.position;
         });
       } catch (e) {
         print('Error loading street view: $e');
+      }
+    }
+  }
+
+  void _loadStreetViewForCurrentStep() async {
+    if (_navigationSteps.isNotEmpty && _currentStepIndex < _navigationSteps.length) {
+      final step = _navigationSteps[_currentStepIndex];
+      final location = step['location'];
+      
+      if (location != null) {
+        final lat = location['lat'];
+        final lng = location['lng'];
+        final apiKey = ApiConfig.googleMapsApiKey;
+
+        try {
+          final url = 'https://maps.googleapis.com/maps/api/streetview?size=800x600&location=$lat,$lng&key=$apiKey&heading=210&pitch=10&fov=90&source=outdoor';
+          
+          setState(() {
+            _streetViewUrl = url;
+            _streetViewImageUrl = url;
+            _streetViewLocation = LatLng(lat, lng);
+          });
+        } catch (e) {
+          print('Error loading street view for current step: $e');
+        }
+      } else if (_destinationMarker != null) {
+        // Fallback to destination street view
+        _loadStreetViewForDestination();
       }
     }
   }
@@ -668,14 +697,49 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _startInAppNavigation() async {
     if (_destinationMarker == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please set a destination first')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)?.pleaseSetDestination ?? 'Please set a destination first'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
+    // Show loading indicator
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)?.loadingRoute ?? 'Loading route...'),
+        backgroundColor: Colors.blue,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
     // Ensure we have a computed route and steps
     if ((_routePolyline == null || _navigationSteps.isEmpty) && _currentLatLng != null) {
-      await _drawRoute(_currentLatLng!, _destinationMarker!.position);
+      try {
+        await _drawRoute(_currentLatLng!, _destinationMarker!.position);
+        
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)?.routeLoaded ?? 'Route loaded successfully!'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${AppLocalizations.of(context)?.errorLoadingRoute ?? 'Error loading route'}: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
     }
 
     // Open in-app navigation modal
@@ -725,23 +789,45 @@ class _MapScreenState extends State<MapScreen> {
 
   List<Map<String, dynamic>> _convertRouteToSteps(RouteOption route) {
     // Convert AI route to navigation steps format
-    return [
-      {
-        'instruction': 'Start from your current location',
-        'distance': '0 km',
-        'duration': '0 min',
-      },
-      {
-        'instruction': 'Follow ${route.name}',
-        'distance': '${route.distance.toStringAsFixed(1)} km',
-        'duration': '${route.duration} min',
-      },
-      {
-        'instruction': 'Arrive at destination',
-        'distance': '0 km',
-        'duration': '0 min',
-      },
-    ];
+    final steps = <Map<String, dynamic>>[];
+    
+    // Add start step
+    steps.add({
+      'instruction': 'Start from your current location',
+      'distance': '0 km',
+      'duration': '0 min',
+      'maneuver': 'start',
+    });
+    
+    // Generate intermediate steps based on route points
+    final points = route.routePoints;
+    if (points.length > 2) {
+      final segmentDistance = route.distance / (points.length - 1);
+      final segmentDuration = route.duration / (points.length - 1);
+      
+      for (int i = 1; i < points.length - 1; i++) {
+        steps.add({
+          'instruction': 'Continue on ${route.name.replaceAll(RegExp(r'[🚗🌳⚡🚦🌱]'), '').trim()}',
+          'distance': '${segmentDistance.toStringAsFixed(1)} km',
+          'duration': '${segmentDuration.toInt()} min',
+          'maneuver': 'continue',
+          'location': {
+            'lat': points[i].latitude,
+            'lng': points[i].longitude,
+          }
+        });
+      }
+    }
+    
+    // Add destination step
+    steps.add({
+      'instruction': 'Arrive at your destination',
+      'distance': '${route.distance.toStringAsFixed(1)} km total',
+      'duration': '${route.duration} min total',
+      'maneuver': 'arrive',
+    });
+    
+    return steps;
   }
 
   void _showNavigationModal() {
@@ -904,8 +990,12 @@ class _MapScreenState extends State<MapScreen> {
                             setState(() {
                               _isStreetViewMode = !_isStreetViewMode;
                             });
-                            if (_isStreetViewMode && _destinationMarker != null) {
-                              _loadStreetViewForDestination();
+                            if (_isStreetViewMode) {
+                              if (_navigationSteps.isNotEmpty) {
+                                _loadStreetViewForCurrentStep();
+                              } else if (_destinationMarker != null) {
+                                _loadStreetViewForDestination();
+                              }
                             }
                           },
                           icon: Icon(
@@ -950,6 +1040,64 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
 
+              // Current Step Instructions
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _navigationSteps.isNotEmpty && _currentStepIndex < _navigationSteps.length
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Step ${_currentStepIndex + 1} of ${_navigationSteps.length}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _navigationSteps[_currentStepIndex]['instruction'] ?? 'Continue forward',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                _navigationSteps[_currentStepIndex]['distance'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const Text(' • ', style: TextStyle(color: Colors.grey)),
+                              Text(
+                                _navigationSteps[_currentStepIndex]['duration'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : const Text(
+                        'No navigation steps available',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+              ),
+              const SizedBox(height: 16),
+
               // Bottom Navigation Buttons
               Container(
                 padding: const EdgeInsets.all(16),
@@ -961,7 +1109,12 @@ class _MapScreenState extends State<MapScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: _currentStepIndex > 0
-                                ? () => setState(() => _currentStepIndex--)
+                                ? () {
+                                    setState(() => _currentStepIndex--);
+                                    if (_isStreetViewMode) {
+                                      _loadStreetViewForCurrentStep();
+                                    }
+                                  }
                                 : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF87CEEB),
@@ -980,7 +1133,12 @@ class _MapScreenState extends State<MapScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: _currentStepIndex < _navigationSteps.length - 1
-                                ? () => setState(() => _currentStepIndex++)
+                                ? () {
+                                    setState(() => _currentStepIndex++);
+                                    if (_isStreetViewMode) {
+                                      _loadStreetViewForCurrentStep();
+                                    }
+                                  }
                                 : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4169E1),

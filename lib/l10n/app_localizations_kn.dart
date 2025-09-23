@@ -469,4 +469,16 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get highTraffic => 'ಹೆಚ್ಚು ಟ್ರಾಫಿಕ್';
+
+  @override
+  String get pleaseSetDestination => 'ದಯವಿಟ್ಟು ಮೊದಲು ಗಮ್ಯಸ್ಥಾನವನ್ನು ಹೊಂದಿಸಿ';
+
+  @override
+  String get loadingRoute => 'ಮಾರ್ಗ ಲೋಡ್ ಆಗುತ್ತಿದೆ...';
+
+  @override
+  String get routeLoaded => 'ಮಾರ್ಗ ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿದೆ!';
+
+  @override
+  String get errorLoadingRoute => 'ಮಾರ್ಗ ಲೋಡ್ ಮಾಡುವಲ್ಲಿ ದೋಷ';
 }

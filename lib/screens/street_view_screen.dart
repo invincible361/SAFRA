@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../config/api_config.dart';
 
 class StreetViewScreen extends StatefulWidget {
   final LatLng startLocation;
@@ -52,8 +53,23 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
     setState(() => _isLoading = false);
   }
 
+  void _updateStreetViewForCurrentPoint() {
+    if (_currentPointIndex < widget.routePoints.length) {
+      final currentPoint = widget.routePoints[_currentPointIndex];
+      
+      // Update the current point's street view URLs with new camera parameters
+      _streetViewImageUrls[_currentPointIndex] = _generateStreetViewImageUrl(currentPoint);
+      _streetViewUrls[_currentPointIndex] = _generateStreetViewUrl(currentPoint);
+      
+      setState(() {
+        // Trigger rebuild to show updated street view
+      });
+    }
+  }
+
   String _generateStreetViewImageUrl(LatLng location) {
-    return 'https://maps.googleapis.com/maps/api/streetview?size=800x600&location=${location.latitude},${location.longitude}&key=YOUR_GOOGLE_API_KEY&heading=${_currentHeading.toInt()}&pitch=${_currentPitch.toInt()}&fov=${_currentFov.toInt()}&source=outdoor';
+    final apiKey = ApiConfig.googleMapsApiKey;
+    return 'https://maps.googleapis.com/maps/api/streetview?size=800x600&location=${location.latitude},${location.longitude}&key=$apiKey&heading=${_currentHeading.toInt()}&pitch=${_currentPitch.toInt()}&fov=${_currentFov.toInt()}&source=outdoor';
   }
 
   String _generateStreetViewUrl(LatLng location) {
@@ -165,24 +181,92 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
               child: currentImageUrl != null
                   ? ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  currentImageUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Color(0xFFCAE3F2),
+                child: GestureDetector(
+                  onHorizontalDragUpdate: (details) {
+                    // Rotate based on horizontal drag
+                    setState(() {
+                      _currentHeading += details.delta.dx * 2; // Sensitivity multiplier
+                      // Keep heading between 0-360 degrees
+                      if (_currentHeading > 360) _currentHeading -= 360;
+                      if (_currentHeading < 0) _currentHeading += 360;
+                    });
+                    // Regenerate street view with new heading
+                    _updateStreetViewForCurrentPoint();
+                  },
+                  onVerticalDragUpdate: (details) {
+                    // Adjust pitch based on vertical drag
+                    setState(() {
+                      _currentPitch += details.delta.dy * 0.5; // Sensitivity multiplier
+                      // Keep pitch between -90 and 90 degrees
+                      _currentPitch = _currentPitch.clamp(-90.0, 90.0);
+                    });
+                    // Regenerate street view with new pitch
+                    _updateStreetViewForCurrentPoint();
+                  },
+                  onScaleUpdate: (details) {
+                    // Adjust FOV based on pinch/scale
+                    setState(() {
+                      _currentFov += (details.scale - 1) * 10; // Sensitivity multiplier
+                      // Keep FOV between 30 and 120 degrees
+                      _currentFov = _currentFov.clamp(30.0, 120.0);
+                    });
+                    // Regenerate street view with new FOV
+                    _updateStreetViewForCurrentPoint();
+                  },
+                  child: Stack(
+                    children: [
+                      Image.network(
+                        currentImageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFFCAE3F2),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Icon(Icons.error,
+                              color: Colors.red, size: 48),
                         ),
                       ),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => const Center(
-                    child: Icon(Icons.error,
-                        color: Colors.red, size: 48),
+                      // Interaction hint overlay
+                      Positioned(
+                        top: 16,
+                        left: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.touch_app,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Swipe to rotate',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               )
@@ -196,18 +280,56 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
           // Navigation
           Container(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
               children: [
-                _buildNavButton(Icons.arrow_back, "Previous",
-                    enabled: _currentPointIndex > 0, onTap: () {
-                      setState(() => _currentPointIndex--);
-                    }),
-                _buildNavButton(Icons.arrow_forward, "Next",
-                    enabled: _currentPointIndex < widget.routePoints.length - 1,
-                    onTap: () {
-                      setState(() => _currentPointIndex++);
-                    }),
+                // Reset camera button
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _currentHeading = 210.0;
+                        _currentPitch = 10.0;
+                        _currentFov = 90.0;
+                      });
+                      _updateStreetViewForCurrentPoint();
+                    },
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    label: const Text('Reset View'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                // Previous/Next buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildNavButton(Icons.arrow_back, "Previous",
+                        enabled: _currentPointIndex > 0, onTap: () {
+                          setState(() => _currentPointIndex--);
+                          // Reset camera parameters when changing points
+                          _currentHeading = 210.0;
+                          _currentPitch = 10.0;
+                          _currentFov = 90.0;
+                        }),
+                    _buildNavButton(Icons.arrow_forward, "Next",
+                        enabled: _currentPointIndex < widget.routePoints.length - 1,
+                        onTap: () {
+                          setState(() => _currentPointIndex++);
+                          // Reset camera parameters when changing points
+                          _currentHeading = 210.0;
+                          _currentPitch = 10.0;
+                          _currentFov = 90.0;
+                        }),
+                  ],
+                ),
               ],
             ),
           ),

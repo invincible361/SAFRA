@@ -1020,6 +1020,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'High Traffic'**
   String get highTraffic;
+
+  /// No description provided for @pleaseSetDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Please set a destination first'**
+  String get pleaseSetDestination;
+
+  /// No description provided for @loadingRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading route...'**
+  String get loadingRoute;
+
+  /// No description provided for @routeLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Route loaded successfully!'**
+  String get routeLoaded;
+
+  /// No description provided for @errorLoadingRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading route'**
+  String get errorLoadingRoute;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

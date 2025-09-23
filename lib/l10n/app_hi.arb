@@ -161,5 +161,9 @@
   "tryAgain": "पुनः प्रयास करें",
   "noInternetConnection": "इंटरनेट कनेक्शन नहीं है",
   "checkConnection": "कनेक्शन जांचें",
-  "noPlacesFound": "कोई स्थान नहीं मिला"
+  "noPlacesFound": "कोई स्थान नहीं मिला",
+  "pleaseSetDestination": "कृपया पहले एक गंतव्य सेट करें",
+  "loadingRoute": "मार्ग लोड हो रहा है...",
+  "routeLoaded": "मार्ग सफलतापूर्वक लोड किया गया!",
+  "errorLoadingRoute": "मार्ग लोड करने में त्रुटि"
 } 

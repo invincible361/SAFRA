@@ -156,5 +156,9 @@
   "considerations": "ಪರಿಗಣನೆಗಳು",
   "lowTraffic": "ಕಡಿಮೆ ಟ್ರಾಫಿಕ್",
   "mediumTraffic": "ಮಧ್ಯಮ ಟ್ರಾಫಿಕ್",
-  "highTraffic": "ಹೆಚ್ಚು ಟ್ರಾಫಿಕ್"
+  "highTraffic": "ಹೆಚ್ಚು ಟ್ರಾಫಿಕ್",
+  "pleaseSetDestination": "ದಯವಿಟ್ಟು ಮೊದಲು ಗಮ್ಯಸ್ಥಾನವನ್ನು ಹೊಂದಿಸಿ",
+  "loadingRoute": "ಮಾರ್ಗ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+  "routeLoaded": "ಮಾರ್ಗ ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿದೆ!",
+  "errorLoadingRoute": "ಮಾರ್ಗ ಲೋಡ್ ಮಾಡುವಲ್ಲಿ ದೋಷ"
 } 

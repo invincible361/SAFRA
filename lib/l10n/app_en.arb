@@ -159,5 +159,9 @@
   "considerations": "Considerations",
   "lowTraffic": "Low Traffic",
   "mediumTraffic": "Medium Traffic",
-  "highTraffic": "High Traffic"
+  "highTraffic": "High Traffic",
+  "pleaseSetDestination": "Please set a destination first",
+  "loadingRoute": "Loading route...",
+  "routeLoaded": "Route loaded successfully!",
+  "errorLoadingRoute": "Error loading route"
 } 

@@ -469,4 +469,16 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get highTraffic => 'उच्च ट्रैफिक';
+
+  @override
+  String get pleaseSetDestination => 'कृपया पहले एक गंतव्य सेट करें';
+
+  @override
+  String get loadingRoute => 'मार्ग लोड हो रहा है...';
+
+  @override
+  String get routeLoaded => 'मार्ग सफलतापूर्वक लोड किया गया!';
+
+  @override
+  String get errorLoadingRoute => 'मार्ग लोड करने में त्रुटि';
 }
