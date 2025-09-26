@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:safra_app/screens/main_screen.dart';
 import 'package:safra_app/screens/signup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
@@ -264,7 +265,20 @@ class _LoginScreenState extends State<LoginScreen> {
         
         if (newSession != null) {
           print('OAuth completed successfully, user authenticated');
-          // The main.dart auth listener should handle navigation
+          // Force navigation to dashboard immediately
+          if (mounted) {
+            // Get user full name from user metadata or use email as fallback
+            final userFullName = newSession.user.userMetadata?['full_name'] as String? ??
+                               newSession.user.email?.split('@').first ??
+                               'User';
+            
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DashboardScreen(userFullName: userFullName),
+              ),
+            );
+          }
         } else {
           // Show message to complete in browser
           if (mounted) {

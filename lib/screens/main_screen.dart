@@ -20,6 +20,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _showCarousel = false;
   Timer? _carouselTimer;
+  Timer? _autoScrollTimer;
+  final PageController _carouselController = PageController();
+  int _currentCarouselIndex = 0;
 
   @override
   void initState() {
@@ -33,6 +36,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           setState(() {
             _showCarousel = true;
           });
+          
+          // Start auto-scrolling after carousel is shown
+          _startAutoScroll();
         }
       });
     } catch (e) {
@@ -41,9 +47,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _startAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted && _carouselController.hasClients) {
+        final nextIndex = (_carouselController.page?.toInt() ?? 0) + 1;
+        final targetIndex = nextIndex >= 3 ? 0 : nextIndex; // We have 3 carousel items
+        _carouselController.animateToPage(
+          targetIndex,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  void _onCarouselPageChanged(int index) {
+    if (mounted) {
+      setState(() {
+        _currentCarouselIndex = index;
+      });
+    }
+  }
+
+  void _handleCarouselTap(int index) {
+    switch (index) {
+      case 0:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EmergencySOSScreen()),
+        );
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MapScreen()),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CommunityScreen()),
+        );
+        break;
+    }
+  }
+
   @override
   void dispose() {
     _carouselTimer?.cancel();
+    _autoScrollTimer?.cancel();
+    _carouselController.dispose();
     super.dispose();
   }
 
@@ -70,12 +124,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final initials = _initialsFromName(widget.userFullName);
 
-    // Simple list of images (switch to assets if you prefer)
-    // Temporarily empty to avoid network image loading issues during tests
-    const carouselImages = <String>[
-      'https://images.unsplash.com/photo-1520975954732-35dd22f7ac9b?q=80&w=1200',
-      'https://images.unsplash.com/photo-1518544801976-3e50e5bb8ab1?q=80&w=1200',
-      'https://images.unsplash.com/photo-1484774657666-56c7b5e4b09b?q=80&w=1200',
+    // Enhanced carousel content with safety-focused images and messages
+    final carouselItems = <Map<String, String>>[
+      {
+        'image': 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=1200',
+        'title': 'Your Safety is Our Priority',
+        'subtitle': '24/7 emergency support at your fingertips',
+      },
+      {
+        'image': 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?q=80&w=1200',
+        'title': 'Safe Routes Navigation',
+        'subtitle': 'AI-powered pathfinding for safer journeys',
+      },
+      {
+        'image': 'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=80&w=1200',
+        'title': 'Community Protection',
+        'subtitle': 'Connect with trusted helpers nearby',
+      },
     ];
 
     return Scaffold(
@@ -92,6 +157,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // App Logo
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.glassBackground,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.glassBorder, width: 1),
+                        image: const DecorationImage(
+                          image: AssetImage('assets/logo.png'),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     // Top-left initials tile
                     Container(
                       width: 44,
@@ -141,56 +221,101 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
 
-              // ===== NEW: Sliding image (carousel) =====
+              // ===== Enhanced Carousel with Auto-scroll and Indicators =====
               // Lazy loaded carousel to improve startup performance
-              if (_showCarousel && carouselImages.isNotEmpty)
-                SizedBox(
-                  height: 160,
-                  child: PageView.builder(
-                  padEnds: true,
-                  itemCount: carouselImages.length,
-                  physics: const BouncingScrollPhysics(),
-                  controller: PageController(viewportFraction: 0.9),
-                  itemBuilder: (context, index) {
-                    final img = carouselImages[index];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.glassBorder, width: 1),
-                        image: DecorationImage(
-                          image: NetworkImage(img), // switch to AssetImage for local assets
-                          fit: BoxFit.cover,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+              if (_showCarousel && carouselItems.isNotEmpty)
+                Column(
+                  children: [
+                    SizedBox(
+                      height: 180,
+                      child: PageView.builder(
+                        padEnds: true,
+                        itemCount: carouselItems.length,
+                        physics: const BouncingScrollPhysics(),
+                        controller: _carouselController,
+                        onPageChanged: _onCarouselPageChanged,
+                        itemBuilder: (context, index) {
+                          final item = carouselItems[index];
+                          return GestureDetector(
+                            onTap: () => _handleCarouselTap(index),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.glassBorder, width: 1),
+                                image: DecorationImage(
+                                  image: NetworkImage(item['image']!),
+                                  fit: BoxFit.cover,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.bottomLeft,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                margin: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item['title']!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      item['subtitle']!,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      alignment: Alignment.bottomLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        margin: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Text(
-                          'Stay Safe, Stay Protected',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                    ),
+                    // Carousel indicators
+                    if (carouselItems.length > 1)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            carouselItems.length,
+                            (index) => Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _currentCarouselIndex == index
+                                    ? AppColors.primaryAccent
+                                    : AppColors.textSecondary.withValues(alpha: 0.3),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    );
-                  },
+                  ],
                 ),
-              ),
 
               // ===== Dashboard grid (updated) =====
               Expanded(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:math' as math;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
@@ -32,58 +33,14 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  GoogleMapController? _mapController;
-  CameraPosition? _initialPosition;
-  bool _loading = true;
-  String? _error;
-  Marker? _userMarker;
-  Marker? _destinationMarker;
-  Stream<Position>? _positionStream;
-  Polyline? _routePolyline;
-  final TextEditingController _destinationController = TextEditingController();
-  LatLng? _currentLatLng;
-  List<dynamic> _suggestions = [];
-  bool _showSuggestions = false;
-  List<Map<String, dynamic>> _navigationSteps = [];
-  int _currentStepIndex = 0;
-
-  // Street View variables
-  bool _isStreetViewMode = false;
-  String? _streetViewUrl;
-  LatLng? _streetViewLocation;
-  bool _showStreetViewImage = false;
-  String? _streetViewImageUrl;
-  List<LatLng> _routePoints = [];
-
-  // Add these for web at the class level
-  final TextEditingController _webSearchController = TextEditingController();
-  final ValueNotifier<List<Map<String, dynamic>>> _webSuggestions = ValueNotifier([]);
-  final ValueNotifier<latlng.LatLng> _webMapCenter = ValueNotifier(latlng.LatLng(28.6139, 77.2090));
-  final ValueNotifier<bool> _webShowSuggestions = ValueNotifier(false);
-  final ValueNotifier<List<latlng.LatLng>> _webRoutePoints = ValueNotifier([]);
-  final ValueNotifier<List<Map<String, dynamic>>> _webGeoapifyPlaces = ValueNotifier([]);
-  static const geoapifyApiKey = '24e376bf13ae4bc385f36dee9a54d67a';
-
-  // Add controllers for from/to fields
-  final TextEditingController _webFromController = TextEditingController();
-  final TextEditingController _webToController = TextEditingController();
-  latlng.LatLng? _webFromLatLng;
-  latlng.LatLng? _webToLatLng;
-  final ValueNotifier<List<Map<String, dynamic>>> _webFromSuggestions = ValueNotifier([]);
-  final ValueNotifier<List<Map<String, dynamic>>> _webToSuggestions = ValueNotifier([]);
-  final ValueNotifier<bool> _webShowFromSuggestions = ValueNotifier(false);
-  final ValueNotifier<bool> _webShowToSuggestions = ValueNotifier(false);
-
-  // Sign out method
   Future<void> _signOut() async {
-    // Show confirmation dialog
     final shouldSignOut = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         final localizations = AppLocalizations.of(context);
         return AlertDialog(
           title: Text(localizations?.signOut ?? 'Sign Out'),
-          content: Text('${localizations?.pleaseAuthenticate ?? 'Please authenticate'}?'),
+          content: const Text('Please confirm sign out?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -108,7 +65,6 @@ class _MapScreenState extends State<MapScreen> {
         }
       } catch (e) {
         print('Error signing out: $e');
-        // Show error message if sign out fails
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -121,62 +77,43 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Move these methods to the class level
-  Future<void> _webFetchFromSuggestions(String query) async {
-    if (query.isEmpty) {
-      _webFromSuggestions.value = [];
-      _webShowFromSuggestions.value = false;
-      return;
-    }
-    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
-    final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
-    if (response.statusCode == 200) {
-      final List data = json.decode(response.body);
-      _webFromSuggestions.value = List<Map<String, dynamic>>.from(data);
-      _webShowFromSuggestions.value = true;
-    }
+  @override
+  Widget build(BuildContext context) {
+    return kIsWeb ? _MapScreenWeb(signOut: _signOut) : _MapScreenMobile(signOut: _signOut);
   }
-  Future<void> _webFetchToSuggestions(String query) async {
-    if (query.isEmpty) {
-      _webToSuggestions.value = [];
-      _webShowToSuggestions.value = false;
-      return;
-    }
-    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
-    final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
-    if (response.statusCode == 200) {
-      final List data = json.decode(response.body);
-      _webToSuggestions.value = List<Map<String, dynamic>>.from(data);
-      _webShowToSuggestions.value = true;
-    }
-  }
+}
+
+// --- Mobile-specific widget (using Google Maps) ---
+class _MapScreenMobile extends StatefulWidget {
+  final VoidCallback signOut;
+  const _MapScreenMobile({required this.signOut});
+
+  @override
+  State<_MapScreenMobile> createState() => _MapScreenMobileState();
+}
+
+class _MapScreenMobileState extends State<_MapScreenMobile> {
+  GoogleMapController? _mapController;
+  CameraPosition? _initialPosition;
+  bool _loading = true;
+  String? _error;
+  Marker? _userMarker;
+  Marker? _destinationMarker;
+  Stream<Position>? _positionStream;
+  Polyline? _routePolyline;
+  final TextEditingController _destinationController = TextEditingController();
+  LatLng? _currentLatLng;
+  List<dynamic> _suggestions = [];
+  bool _showSuggestions = false;
+  List<Map<String, dynamic>> _navigationSteps = [];
+  int _currentStepIndex = 0;
+  List<LatLng> _routePoints = [];
 
   @override
   void initState() {
     super.initState();
     _determinePosition();
     _destinationController.addListener(_onDestinationChanged);
-    if (kIsWeb) {
-      // On web, try to get the user's current location on map load
-      Future<void> webSetUserLocation() async {
-        try {
-          bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-          if (!serviceEnabled) return;
-          LocationPermission permission = await Geolocator.checkPermission();
-          if (permission == LocationPermission.denied) {
-            permission = await Geolocator.requestPermission();
-            if (permission == LocationPermission.denied) return;
-          }
-          if (permission == LocationPermission.deniedForever) return;
-          Position pos = await Geolocator.getCurrentPosition();
-          _webMapCenter.value = latlng.LatLng(pos.latitude, pos.longitude);
-        } catch (e) {
-          // Ignore and use default center
-        }
-      }
-      // Call this in initState
-      webSetUserLocation();
-    }
   }
 
   @override
@@ -192,7 +129,6 @@ class _MapScreenState extends State<MapScreen> {
       _error = null;
     });
     try {
-      // Check if location service is enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
@@ -229,7 +165,7 @@ class _MapScreenState extends State<MapScreen> {
       });
       _positionStream = Geolocator.getPositionStream();
       _positionStream?.listen(
-            (pos) {
+        (pos) {
           if (mounted) {
             _updateUserMarker(pos);
             setState(() {
@@ -245,12 +181,10 @@ class _MapScreenState extends State<MapScreen> {
         },
         onError: (error) {
           print('Location stream error: $error');
-          // Don't show error to user for stream errors, just log them
         },
       );
     } catch (e) {
       print('Location error: $e');
-      // Set a default location (e.g., Bangalore) if location services fail
       setState(() {
         _error = 'Location services unavailable. Using default location.';
         _currentLatLng = const LatLng(12.9716, 77.5946); // Bangalore coordinates
@@ -276,11 +210,8 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // Street View methods
   void _toggleStreetView() {
     if (_currentLatLng != null) {
-      print('Opening Street View for location: $_currentLatLng');
-      _loadStreetView(_currentLatLng!);
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -288,13 +219,12 @@ class _MapScreenState extends State<MapScreen> {
             startLocation: _currentLatLng!,
             endLocation: _destinationMarker?.position ?? _currentLatLng!,
             routePoints: _routePoints.isNotEmpty ? _routePoints : [_currentLatLng!],
-            streetViewUrl: _streetViewUrl,
-            streetViewImageUrl: _streetViewImageUrl,
+            streetViewUrl: _generateStreetViewUrl(_currentLatLng!),
+            streetViewImageUrl: _generateStreetViewImageUrl(_currentLatLng!),
           ),
         ),
       );
     } else {
-      print('Warning: No current location available for Street View');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No location available for Street View'),
@@ -304,93 +234,12 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _loadStreetView(LatLng location) {
-    setState(() {
-      _streetViewLocation = location;
-      _streetViewUrl = _generateStreetViewUrl(location);
-      _streetViewImageUrl = _generateStreetViewImageUrl(location);
-      print('Street View URL generated: $_streetViewUrl');
-      print('Street View Image URL generated: $_streetViewImageUrl');
-    });
-  }
-
   String _generateStreetViewImageUrl(LatLng location) {
-    // Generate Street View static image URL with better parameters
     return 'https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${location.latitude},${location.longitude}&key=$googleApiKey&heading=210&pitch=10&fov=90&source=outdoor';
   }
 
-  void _loadStreetViewImage() {
-    setState(() {
-      _showStreetViewImage = !_showStreetViewImage;
-      print('Show Street View Image: $_showStreetViewImage');
-      if (_showStreetViewImage && _streetViewImageUrl != null) {
-        print('Loading Street View image from: $_streetViewImageUrl');
-        // Test the URL by making a request
-        _testStreetViewUrl();
-      }
-    });
-  }
-
-  void _testStreetViewUrl() async {
-    if (_streetViewImageUrl != null) {
-      try {
-        final response = await http.get(Uri.parse(_streetViewImageUrl!));
-        print('Street View API response status: ${response.statusCode}');
-        if (response.statusCode == 200) {
-          print('Street View image loaded successfully');
-        } else {
-          print('Street View API error: ${response.statusCode} - ${response.body}');
-        }
-      } catch (e) {
-        print('Error testing Street View URL: $e');
-      }
-    }
-  }
-
   String _generateStreetViewUrl(LatLng location) {
-    // Use Google Maps Street View URL format with proper parameters
-    return 'https://www.google.com/maps/@${location.latitude},${location.longitude},3a,75y,0h,90t/data=!3m6!1e1!3m4!1s!2e0!7i16384!8i8192';
-  }
-
-  Future<void> _openStreetView() async {
-    if (_streetViewUrl != null) {
-      final Uri url = Uri.parse(_streetViewUrl!);
-      try {
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-          print('Opening Street View: $_streetViewUrl');
-        } else {
-          print('Could not launch Street View URL: $_streetViewUrl');
-          // Show a snackbar or dialog to inform the user
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Could not open Street View. Please try again.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        print('Error opening Street View: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error opening Street View: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } else {
-      print('Street View URL is null');
-    }
-  }
-
-  void _onMapTap(LatLng location) {
-    if (_isStreetViewMode) {
-      _loadStreetView(location);
-    }
+    return 'http://maps.google.com/maps?q=&layer=c&cbll=${location.latitude},${location.longitude}';
   }
 
   void _onDestinationChanged() async {
@@ -406,7 +255,6 @@ class _MapScreenState extends State<MapScreen> {
       'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$query&key=$googleApiKey&components=country:in',
     );
     final response = await http.get(url);
-    print('Places API response: ${response.body}'); // Debug print
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       setState(() {
@@ -434,7 +282,9 @@ class _MapScreenState extends State<MapScreen> {
         _destinationMarker = Marker(
           markerId: const MarkerId('destination'),
           position: dest,
-          infoWindow: const InfoWindow(title: 'Destination'),
+          infoWindow: InfoWindow(
+            title: AppLocalizations.of(context)?.destination ?? 'Destination',
+          ),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         );
       });
@@ -492,8 +342,6 @@ class _MapScreenState extends State<MapScreen> {
       final startLng = _currentLatLng!.longitude;
       final endLat = _destinationMarker!.position.latitude;
       final endLng = _destinationMarker!.position.longitude;
-
-      // Open in Google Maps
       final url = 'https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$endLat,$endLng&travelmode=driving';
 
       try {
@@ -501,7 +349,9 @@ class _MapScreenState extends State<MapScreen> {
           await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open Google Maps')),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)?.couldNotOpenMaps ?? 'Could not open Google Maps'),
+            ),
           );
         }
       } catch (e) {
@@ -525,62 +375,12 @@ class _MapScreenState extends State<MapScreen> {
       _destinationController.clear();
       _suggestions.clear();
       _showSuggestions = false;
+      _routePoints.clear();
     });
-
-    // Reset camera to current location
     if (_currentLatLng != null) {
       _mapController?.animateCamera(CameraUpdate.newLatLng(_currentLatLng!));
     }
-
-    Navigator.of(context).pop(); // Close the navigation modal
-  }
-
-  void _loadStreetViewForDestination() async {
-    if (_destinationMarker != null) {
-      final lat = _destinationMarker!.position.latitude;
-      final lng = _destinationMarker!.position.longitude;
-
-      try {
-        final apiKey = ApiConfig.googleMapsApiKey;
-        final url = 'https://maps.googleapis.com/maps/api/streetview?size=800x600&location=$lat,$lng&key=$apiKey&heading=210&pitch=10&fov=90&source=outdoor';
-
-        setState(() {
-          _streetViewUrl = url;
-          _streetViewImageUrl = url;
-          _streetViewLocation = _destinationMarker!.position;
-        });
-      } catch (e) {
-        print('Error loading street view: $e');
-      }
-    }
-  }
-
-  void _loadStreetViewForCurrentStep() async {
-    if (_navigationSteps.isNotEmpty && _currentStepIndex < _navigationSteps.length) {
-      final step = _navigationSteps[_currentStepIndex];
-      final location = step['location'];
-      
-      if (location != null) {
-        final lat = location['lat'];
-        final lng = location['lng'];
-        final apiKey = ApiConfig.googleMapsApiKey;
-
-        try {
-          final url = 'https://maps.googleapis.com/maps/api/streetview?size=800x600&location=$lat,$lng&key=$apiKey&heading=210&pitch=10&fov=90&source=outdoor';
-          
-          setState(() {
-            _streetViewUrl = url;
-            _streetViewImageUrl = url;
-            _streetViewLocation = LatLng(lat, lng);
-          });
-        } catch (e) {
-          print('Error loading street view for current step: $e');
-        }
-      } else if (_destinationMarker != null) {
-        // Fallback to destination street view
-        _loadStreetViewForDestination();
-      }
-    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _drawRoute(LatLng start, LatLng end) async {
@@ -592,12 +392,7 @@ class _MapScreenState extends State<MapScreen> {
       final data = json.decode(response.body);
       if (data['routes'].isNotEmpty) {
         final polylineString = data['routes'][0]['overview_polyline']['points'];
-        final points = _decodePolylineMobile(polylineString);
-        debugPrint('Decoded polyline points: ${points.length}');
-        for (int i = 0; i < (points.length < 5 ? points.length : 5); i++) {
-          debugPrint('Point $i: ${points[i]}');
-        }
-        // Parse navigation steps
+        final points = _decodePolyline(polylineString);
         final steps = <Map<String, dynamic>>[];
         final legs = data['routes'][0]['legs'];
         if (legs != null && legs.isNotEmpty) {
@@ -606,17 +401,24 @@ class _MapScreenState extends State<MapScreen> {
               'instruction': (step['html_instructions'] as String?)?.replaceAll(RegExp(r'<[^>]*>'), ''),
               'distance': step['distance']?['text'] ?? '',
               'duration': step['duration']?['text'] ?? '',
+              'location': step['start_location']
             });
           }
+          steps.add({
+            'instruction': 'Arrive at destination',
+            'distance': legs[0]['distance']?['text'] ?? '',
+            'duration': legs[0]['duration']?['text'] ?? '',
+            'location': legs[0]['end_location'],
+          });
         }
         setState(() {
           _routePolyline = Polyline(
             polylineId: const PolylineId('route'),
             color: Colors.blue,
             width: 5,
-            points: points, // Use all decoded points
+            points: points,
           );
-          _routePoints = points; // Store route points for Street View
+          _routePoints = points;
           _navigationSteps = steps;
           _currentStepIndex = 0;
         });
@@ -624,34 +426,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  List<latlng.LatLng> _decodePolylineWeb(String encoded) {
-    List<latlng.LatLng> polyline = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-      polyline.add(latlng.LatLng(lat / 1E5, lng / 1E5));
-    }
-    return polyline;
-  }
-
-  List<LatLng> _decodePolylineMobile(String encoded) {
+  List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> polyline = [];
     int index = 0, len = encoded.length;
     int lat = 0, lng = 0;
@@ -678,24 +453,7 @@ class _MapScreenState extends State<MapScreen> {
     return polyline;
   }
 
-  bool _isValidLatLng(latlng.LatLng? point) {
-    if (point == null) return false;
-    if (!point.latitude.isFinite || !point.longitude.isFinite) return false;
-    if (point.latitude.abs() > 90 || point.longitude.abs() > 180) return false;
-    return true;
-  }
-
-  // Helper to validate and log invalid LatLng
-  latlng.LatLng? _safeLatLng(dynamic lat, dynamic lon, {String? context}) {
-    if (lat is num && lon is num && lat.isFinite && lon.isFinite && lat.abs() <= 90 && lon.abs() <= 180) {
-      return latlng.LatLng(lat.toDouble(), lon.toDouble());
-    } else {
-      debugPrint('Invalid LatLng: lat=$lat, lon=$lon, context=$context');
-      return null;
-    }
-  }
-
-  Future<void> _startInAppNavigation() async {
+  void _startInAppNavigation() async {
     if (_destinationMarker == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -705,31 +463,9 @@ class _MapScreenState extends State<MapScreen> {
       );
       return;
     }
-
-    // Show loading indicator
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)?.loadingRoute ?? 'Loading route...'),
-        backgroundColor: Colors.blue,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // Ensure we have a computed route and steps
-    if ((_routePolyline == null || _navigationSteps.isEmpty) && _currentLatLng != null) {
+    if (_routePolyline == null || _navigationSteps.isEmpty) {
       try {
         await _drawRoute(_currentLatLng!, _destinationMarker!.position);
-        
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)?.routeLoaded ?? 'Route loaded successfully!'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -742,8 +478,6 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
     }
-
-    // Open in-app navigation modal
     if (mounted) {
       _showNavigationModal();
     }
@@ -753,7 +487,6 @@ class _MapScreenState extends State<MapScreen> {
     if (_destinationMarker != null) {
       final destination = _destinationMarker!.position;
       final currentLocation = _currentLatLng ?? const LatLng(0, 0);
-
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -766,7 +499,6 @@ class _MapScreenState extends State<MapScreen> {
       );
 
       if (result != null && result is RouteOption) {
-        // Handle selected AI route
         _handleSelectedAIRoute(result);
       }
     }
@@ -776,7 +508,6 @@ class _MapScreenState extends State<MapScreen> {
     if (_destinationMarker != null) {
       final destination = _destinationMarker!.position;
       final currentLocation = _currentLatLng ?? const LatLng(0, 0);
-
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -789,13 +520,11 @@ class _MapScreenState extends State<MapScreen> {
       );
 
       if (result != null && result is List<LatLng>) {
-        // Handle custom path
         _handleCustomPath(result);
       } else {
-        // User chose not to use the custom path
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Custom path creation cancelled'),
+            content: Text(AppLocalizations.of(context)?.customPathCancelled ?? 'Custom path creation cancelled'),
             backgroundColor: Colors.orange,
             duration: const Duration(seconds: 2),
           ),
@@ -808,7 +537,6 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _routePoints = customPath;
       _navigationSteps = _convertCustomPathToSteps(customPath);
-      // Update the polyline to show the custom path on the map
       _routePolyline = Polyline(
         polylineId: const PolylineId('route'),
         color: Colors.purple,
@@ -817,17 +545,9 @@ class _MapScreenState extends State<MapScreen> {
       );
     });
 
-    // Also update web-specific ValueNotifier if running on web
-    if (kIsWeb) {
-      // Convert LatLng to latlng.LatLng for web version
-      final webCustomPath = customPath.map((point) => latlng.LatLng(point.latitude, point.longitude)).toList();
-      _webRoutePoints.value = webCustomPath;
-    }
-
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Custom path loaded successfully!'),
+        content: Text(AppLocalizations.of(context)?.customPathLoaded ?? 'Custom path loaded successfully!'),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),
       ),
@@ -836,38 +556,51 @@ class _MapScreenState extends State<MapScreen> {
 
   List<Map<String, dynamic>> _convertCustomPathToSteps(List<LatLng> path) {
     List<Map<String, dynamic>> steps = [];
-    
+    if (path.isEmpty) return steps;
+
+    steps.add({
+      'instruction': 'Start from your current location',
+      'distance': '0 km',
+      'duration': '0 min',
+      'maneuver': 'start',
+      'location': {'lat': path.first.latitude, 'lng': path.first.longitude},
+    });
+
     for (int i = 0; i < path.length - 1; i++) {
+      final distance = _calculateDistance(path[i].latitude, path[i].longitude, path[i + 1].latitude, path[i + 1].longitude);
+      final duration = (distance / 30 * 60).round();
       steps.add({
-        'instruction': 'Continue straight',
-        'distance': '100m',
-        'duration': '1 min',
+        'instruction': 'Continue on custom path',
+        'distance': '${distance.toStringAsFixed(1)} km',
+        'duration': '$duration min',
         'maneuver': 'straight',
-        'startLocation': path[i],
-        'endLocation': path[i + 1],
+        'location': {'lat': path[i].latitude, 'lng': path[i].longitude},
       });
     }
-    
+
     steps.add({
       'instruction': 'Arrive at destination',
-      'distance': '0m',
+      'distance': '0 km',
       'duration': '0 min',
       'maneuver': 'arrive',
-      'startLocation': path.last,
-      'endLocation': path.last,
+      'location': {'lat': path.last.latitude, 'lng': path.last.longitude},
     });
-    
+
     return steps;
   }
 
   void _handleSelectedAIRoute(RouteOption route) {
-    // Update the map with the selected AI route
     setState(() {
       _routePoints = route.routePoints;
       _navigationSteps = _convertRouteToSteps(route);
+      _routePolyline = Polyline(
+        polylineId: const PolylineId('route'),
+        color: Colors.blue,
+        width: 5,
+        points: _routePoints,
+      );
     });
 
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Selected: ${route.name}'),
@@ -877,28 +610,20 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   List<Map<String, dynamic>> _convertRouteToSteps(RouteOption route) {
-    // Convert AI route to navigation steps format
     final steps = <Map<String, dynamic>>[];
-    
-    // Add start step
     steps.add({
       'instruction': 'Start from your current location',
       'distance': '0 km',
       'duration': '0 min',
       'maneuver': 'start',
     });
-    
-    // Generate intermediate steps based on route points
     final points = route.routePoints;
     if (points.length > 2) {
-      final segmentDistance = route.distance / (points.length - 1);
-      final segmentDuration = route.duration / (points.length - 1);
-      
       for (int i = 1; i < points.length - 1; i++) {
         steps.add({
           'instruction': 'Continue on ${route.name.replaceAll(RegExp(r'[🚗🌳⚡🚦🌱]'), '').trim()}',
-          'distance': '${segmentDistance.toStringAsFixed(1)} km',
-          'duration': '${segmentDuration.toInt()} min',
+          'distance': 'unknown',
+          'duration': 'unknown',
           'maneuver': 'continue',
           'location': {
             'lat': points[i].latitude,
@@ -907,387 +632,223 @@ class _MapScreenState extends State<MapScreen> {
         });
       }
     }
-    
-    // Add destination step
     steps.add({
       'instruction': 'Arrive at your destination',
       'distance': '${route.distance.toStringAsFixed(1)} km total',
       'duration': '${route.duration} min total',
       'maneuver': 'arrive',
     });
-    
     return steps;
   }
 
+  double _calculateDistance(double lat1, double lng1, double lat2, double lng2) {
+    const earthRadius = 6371;
+    final dLat = (lat2 - lat1) * (math.pi / 180);
+    final dLng = (lng2 - lng1) * (math.pi / 180);
+    final lat1Rad = lat1 * (math.pi / 180);
+    final lat2Rad = lat2 * (math.pi / 180);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.cos(lat1Rad) * math.cos(lat2Rad) * math.sin(dLng / 2) * math.sin(dLng / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
   void _showNavigationModal() {
+    if (_navigationSteps.isEmpty) {
+      if (_currentLatLng != null && _destinationMarker != null) {
+        _drawRoute(_currentLatLng!, _destinationMarker!.position);
+      }
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.8,
-          decoration: const BoxDecoration(
-            color: Color(0xFF111416),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[600],
-                  borderRadius: BorderRadius.circular(2),
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.8,
+              decoration: const BoxDecoration(
+                color: Color(0xFF111416),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
-
-              // Route Progress Header
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)?.routeProgress ?? 'ROUTE PROGRESS',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[600],
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
                       children: [
                         Text(
-                          AppLocalizations.of(context)?.currentLocation ?? 'Current Location',
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          AppLocalizations.of(context)?.routeProgress ?? 'ROUTE PROGRESS',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
                         ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)?.currentLocation ?? 'Current Location',
+                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              AppLocalizations.of(context)?.destination ?? 'Destination',
+                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
                         Text(
-                          AppLocalizations.of(context)?.destination ?? 'Destination',
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          '${AppLocalizations.of(context)?.steps ?? 'Steps'} ${_currentStepIndex + 1}/${_navigationSteps.length}',
+                          style: const TextStyle(color: Colors.black, fontSize: 14),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${AppLocalizations.of(context)?.steps ?? 'Steps'} ${_currentStepIndex + 1}/${_navigationSteps.length}',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
+                  ),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Icon(
+                              Icons.map,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                          ),
+                          Positioned(
+                            left: 8,
+                            top: 8,
+                            child: IconButton(
+                              onPressed: _currentStepIndex > 0 ? () => setModalState(() => _currentStepIndex--) : null,
+                              icon: const Icon(Icons.arrow_back, color: Colors.black),
+                              style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.8)),
+                            ),
+                          ),
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: IconButton(
+                              onPressed: _currentStepIndex < _navigationSteps.length - 1 ? () => setModalState(() => _currentStepIndex++) : null,
+                              icon: const Icon(Icons.arrow_forward, color: Colors.black),
+                              style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.8)),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              // Navigation Content
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Stack(
-                    children: [
-                      // Street View or Map Display
-                      Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: _isStreetViewMode && _streetViewUrl != null
-                            ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            _streetViewUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.streetview,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                            : const Center(
-                          child: Icon(
-                            Icons.map,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-
-                      // Navigation Controls
-                      Positioned(
-                        left: 8,
-                        top: 8,
-                        child: IconButton(
-                          onPressed: _currentStepIndex > 0
-                              ? () => setState(() => _currentStepIndex--)
-                              : null,
-                          icon: const Icon(Icons.arrow_back, color: Colors.black),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: IconButton(
-                          onPressed: _currentStepIndex < _navigationSteps.length - 1
-                              ? () => setState(() => _currentStepIndex++)
-                              : null,
-                          icon: const Icon(Icons.arrow_forward, color: Colors.black),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-
-                      // Street View Toggle Button
-                      Positioned(
-                        right: 8,
-                        top: 60,
-                        child: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _isStreetViewMode = !_isStreetViewMode;
-                            });
-                            if (_isStreetViewMode) {
-                              if (_navigationSteps.isNotEmpty) {
-                                _loadStreetViewForCurrentStep();
-                              } else if (_destinationMarker != null) {
-                                _loadStreetViewForDestination();
-                              }
-                            }
-                          },
-                          icon: Icon(
-                            _isStreetViewMode ? Icons.map : Icons.streetview,
-                            color: Colors.black,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ),
-
-                      // Zoom Controls
-                      Positioned(
-                        right: 8,
-                        top: 120,
-                        child: Column(
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: _navigationSteps.isNotEmpty && _currentStepIndex < _navigationSteps.length
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Step ${_currentStepIndex + 1} of ${_navigationSteps.length}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _navigationSteps[_currentStepIndex]['instruction'] ?? 'Continue forward',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    _navigationSteps[_currentStepIndex]['distance'] ?? '',
+                                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                  ),
+                                  if (_navigationSteps[_currentStepIndex]['duration'] != null && _navigationSteps[_currentStepIndex]['duration'].toString().isNotEmpty)
+                                    const Text(' • ', style: TextStyle(color: Colors.grey)),
+                                  if (_navigationSteps[_currentStepIndex]['duration'] != null && _navigationSteps[_currentStepIndex]['duration'].toString().isNotEmpty)
+                                    Text(
+                                      _navigationSteps[_currentStepIndex]['duration'],
+                                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          )
+                        : const Center(child: CircularProgressIndicator()),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Row(
                           children: [
-                            IconButton(
-                              onPressed: () {
-                                // Zoom in functionality
-                              },
-                              icon: const Icon(Icons.zoom_in, color: Colors.black),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(alpha: 0.8),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _currentStepIndex > 0 ? () => setModalState(() => _currentStepIndex--) : null,
+                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF87CEEB), padding: const EdgeInsets.symmetric(vertical: 12)),
+                                child: Text(AppLocalizations.of(context)?.previous ?? 'PREVIOUS', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                               ),
                             ),
-                            IconButton(
-                              onPressed: () {
-                                // Zoom out functionality
-                              },
-                              icon: const Icon(Icons.zoom_out, color: Colors.black),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(alpha: 0.8),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _currentStepIndex < _navigationSteps.length - 1 ? () => setModalState(() => _currentStepIndex++) : null,
+                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4169E1), padding: const EdgeInsets.symmetric(vertical: 12)),
+                                child: Text(AppLocalizations.of(context)?.next ?? 'NEXT', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _openInMaps,
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 12)),
+                                child: Text(AppLocalizations.of(context)?.openInMaps ?? 'OPEN IN MAPS', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _clearNavigation,
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 12)),
+                                child: Text(AppLocalizations.of(context)?.clear ?? 'CLEAR', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-
-              // Current Step Instructions
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: _navigationSteps.isNotEmpty && _currentStepIndex < _navigationSteps.length
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Step ${_currentStepIndex + 1} of ${_navigationSteps.length}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _navigationSteps[_currentStepIndex]['instruction'] ?? 'Continue forward',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                _navigationSteps[_currentStepIndex]['distance'] ?? '',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const Text(' • ', style: TextStyle(color: Colors.grey)),
-                              Text(
-                                _navigationSteps[_currentStepIndex]['duration'] ?? '',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                    : const Text(
-                        'No navigation steps available',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-              ),
-              const SizedBox(height: 16),
-
-              // Bottom Navigation Buttons
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // Top Row: Previous/Next
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _currentStepIndex > 0
-                                ? () {
-                                    setState(() => _currentStepIndex--);
-                                    if (_isStreetViewMode) {
-                                      _loadStreetViewForCurrentStep();
-                                    }
-                                  }
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF87CEEB),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context)?.previous ?? 'PREVIOUS',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _currentStepIndex < _navigationSteps.length - 1
-                                ? () {
-                                    setState(() => _currentStepIndex++);
-                                    if (_isStreetViewMode) {
-                                      _loadStreetViewForCurrentStep();
-                                    }
-                                  }
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4169E1),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context)?.next ?? 'NEXT',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Bottom Row: Open in Maps/Clear
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _openInMaps,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context)?.openInMaps ?? 'OPEN IN MAPS',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _clearNavigation,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context)?.clear ?? 'CLEAR',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -1295,564 +856,19 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
-      // --- Web: Place search state ---
-      Future<void> webFetchSuggestions(String query) async {
-        if (query.isEmpty) {
-          _webSuggestions.value = [];
-          _webShowSuggestions.value = false;
-          _webRoutePoints.value = [];
-          return;
-        }
-        final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
-        final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
-        if (response.statusCode == 200) {
-          final List data = json.decode(response.body);
-          _webSuggestions.value = List<Map<String, dynamic>>.from(data);
-          _webShowSuggestions.value = true;
-        }
-      }
-
-      Future<void> webFetchRoute(latlng.LatLng start, latlng.LatLng end) async {
-        // Use OSRM for routing
-        final url = Uri.parse(
-          'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson',
-        );
-        final response = await http.get(url);
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['routes'] != null && data['routes'].isNotEmpty) {
-            final coords = data['routes'][0]['geometry']['coordinates'] as List;
-            final List<latlng.LatLng> validPoints = [];
-            for (final c in coords) {
-              final lat = c[1];
-              final lon = c[0];
-              final point = _safeLatLng(lat, lon, context: 'route');
-              if (point != null) validPoints.add(point);
-            }
-            // Final check: only assign if all points are valid and finite
-            if (validPoints.isNotEmpty && validPoints.every((p) => p.latitude.isFinite && p.longitude.isFinite && p.latitude.abs() <= 90 && p.longitude.abs() <= 180)) {
-              _webRoutePoints.value = validPoints;
-            } else {
-              _webRoutePoints.value = [];
-            }
-          } else {
-            _webRoutePoints.value = [];
-          }
-        }
-      }
-      // Remove Geoapify integration for web places, use Nominatim for all place search
-      Future<void> webFetchNominatimPlaces(String query) async {
-        if (query.isEmpty) {
-          _webGeoapifyPlaces.value = [];
-          return;
-        }
-        final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=20');
-        final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
-        if (response.statusCode == 200) {
-          final List data = json.decode(response.body);
-          _webGeoapifyPlaces.value = data.map<Map<String, dynamic>>((item) => {
-            'name': item['display_name'] ?? '',
-            'lat': double.tryParse(item['lat'] ?? '0') ?? 0,
-            'lon': double.tryParse(item['lon'] ?? '0') ?? 0,
-            'address': item['display_name'] ?? '',
-          }).toList();
-        }
-      }
-
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)?.map ?? 'Map'),
-          actions: [
-            const LanguageSelector(),
-            IconButton(
-              icon: const Icon(Icons.security),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SecuritySetupScreen(),
-                  ),
-                );
-              },
-              tooltip: AppLocalizations.of(context)?.securitySettings ?? 'Security Settings',
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _signOut,
-              tooltip: AppLocalizations.of(context)?.signOut ?? 'Sign Out',
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('From:'),
-                            TextField(
-                              controller: _webFromController,
-                              decoration: const InputDecoration(
-                                hintText: 'Start location',
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(),
-                              ),
-                              style: const TextStyle(color: Colors.black),
-                              onChanged: (q) => _webFetchFromSuggestions(q),
-                            ),
-                            ValueListenableBuilder<bool>(
-                              valueListenable: _webShowFromSuggestions,
-                              builder: (context, show, _) {
-                                if (!show || _webFromSuggestions.value.isEmpty) return const SizedBox.shrink();
-                                return Container(
-                                  color: Colors.white,
-                                  height: 120,
-                                  child: ValueListenableBuilder<List<Map<String, dynamic>>>(
-                                    valueListenable: _webFromSuggestions,
-                                    builder: (context, suggestions, _) {
-                                      return ListView.builder(
-                                        itemCount: suggestions.length,
-                                        itemBuilder: (context, index) {
-                                          final s = suggestions[index];
-                                          return ListTile(
-                                            title: Text(
-                                              s['display_name'] ?? '',
-                                              style: const TextStyle(color: Colors.black),
-                                            ),
-                                            onTap: () {
-                                              final latRaw = s['lat'] ?? '0';
-                                              final lonRaw = s['lon'] ?? '0';
-                                              final lat = double.tryParse(latRaw) ?? 0;
-                                              final lon = double.tryParse(lonRaw) ?? 0;
-                                              if (lat.isFinite && lon.isFinite && lat.abs() <= 90 && lon.abs() <= 180) {
-                                                _webFromLatLng = latlng.LatLng(lat, lon);
-                                              } else {
-                                                _webFromLatLng = null;
-                                              }
-                                              _webFromController.text = s['display_name'] ?? '';
-                                              _webShowFromSuggestions.value = false;
-                                            },
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('To:'),
-                            TextField(
-                              controller: _webToController,
-                              decoration: const InputDecoration(
-                                hintText: 'Destination',
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(),
-                              ),
-                              style: const TextStyle(color: Colors.black),
-                              onChanged: (q) => _webFetchToSuggestions(q),
-                            ),
-                            ValueListenableBuilder<bool>(
-                              valueListenable: _webShowToSuggestions,
-                              builder: (context, show, _) {
-                                if (!show || _webToSuggestions.value.isEmpty) return const SizedBox.shrink();
-                                return Container(
-                                  color: Colors.white,
-                                  height: 120,
-                                  child: ValueListenableBuilder<List<Map<String, dynamic>>>(
-                                    valueListenable: _webToSuggestions,
-                                    builder: (context, suggestions, _) {
-                                      return ListView.builder(
-                                        itemCount: suggestions.length,
-                                        itemBuilder: (context, index) {
-                                          final s = suggestions[index];
-                                          return ListTile(
-                                            title: Text(
-                                              s['display_name'] ?? '',
-                                              style: const TextStyle(color: Colors.black),
-                                            ),
-                                            onTap: () {
-                                              final latRaw = s['lat'] ?? '0';
-                                              final lonRaw = s['lon'] ?? '0';
-                                              final lat = double.tryParse(latRaw) ?? 0;
-                                              final lon = double.tryParse(lonRaw) ?? 0;
-                                              if (lat.isFinite && lon.isFinite && lat.abs() <= 90 && lon.abs() <= 180) {
-                                                _webToLatLng = latlng.LatLng(lat, lon);
-                                              } else {
-                                                _webToLatLng = null;
-                                              }
-                                              _webToController.text = s['display_name'] ?? '';
-                                              _webShowToSuggestions.value = false;
-                                            },
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_isValidLatLng(_webFromLatLng) && _isValidLatLng(_webToLatLng)) {
-                            webFetchRoute(_webFromLatLng!, _webToLatLng!);
-                            _webMapCenter.value = _webFromLatLng!;
-                          }
-                        },
-                        child: const Text('Get Directions'),
-                      ),
-                    ],
-                  ),
-                  ValueListenableBuilder<latlng.LatLng>(
-                    valueListenable: _webMapCenter,
-                    builder: (context, center, _) {
-                      if (!_isValidLatLng(center) || _safeLatLng(center.latitude, center.longitude, context: 'center') == null) {
-                        debugPrint('Invalid map center: $center');
-                        return const Center(child: Text('Invalid map center. Please select valid locations.'));
-                      }
-                      return ValueListenableBuilder<List<latlng.LatLng>>(
-                        valueListenable: _webRoutePoints,
-                        builder: (context, routePoints, _) {
-                          // Filter out invalid route points
-                          final validRoutePoints = routePoints.where((p) => _isValidLatLng(p)).toList();
-                          return fm.FlutterMap(
-                            options: fm.MapOptions(
-                              initialCenter: center,
-                              initialZoom: 13.0,
-                              onTap: (tapPos, latlng) {
-                                _webShowSuggestions.value = false;
-                              },
-                            ),
-                            children: [
-                              fm.TileLayer(
-                                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                subdomains: const ['a', 'b', 'c'],
-                              ),
-                              // Show Nominatim places as markers
-                              ValueListenableBuilder<List<Map<String, dynamic>>>(
-                                valueListenable: _webGeoapifyPlaces,
-                                builder: (context, places, _) {
-                                  return fm.MarkerLayer(
-                                    markers: [
-                                      ...places.map((place) {
-                                        final markerPoint = _safeLatLng(place['lat'], place['lon'], context: 'marker');
-                                        if (markerPoint == null) return null;
-                                        return fm.Marker(
-                                          point: markerPoint,
-                                          width: 40,
-                                          height: 40,
-                                          child: Tooltip(
-                                            message: place['name'] ?? '',
-                                            child: const Icon(Icons.location_on, color: Colors.blue, size: 40),
-                                          ),
-                                        );
-                                      }).whereType<fm.Marker>(),
-                                      // ... existing center marker ...
-                                      fm.Marker(
-                                        point: center,
-                                        width: 40,
-                                        height: 40,
-                                        child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
-                                      ),
-                                      // Show markers for from/to
-                                      if (_safeLatLng(_webFromLatLng?.latitude, _webFromLatLng?.longitude, context: 'from') != null)
-                                        fm.Marker(
-                                          point: _webFromLatLng!,
-                                          width: 40,
-                                          height: 40,
-                                          child: const Icon(Icons.location_pin, color: Colors.green, size: 40),
-                                        ),
-                                      if (_safeLatLng(_webToLatLng?.latitude, _webToLatLng?.longitude, context: 'to') != null)
-                                        fm.Marker(
-                                          point: _webToLatLng!,
-                                          width: 40,
-                                          height: 40,
-                                          child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
-                                        ),
-                                    ],
-                                  );
-                                },
-                              ),
-                              // Only draw polyline if valid
-                              if (validRoutePoints.length > 1)
-                                fm.PolylineLayer(
-                                  polylines: [
-                                    fm.Polyline(
-                                      points: validRoutePoints,
-                                      color: Colors.blue,
-                                      strokeWidth: 4.0,
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  // ... existing suggestion dropdown ...
-                ],
-              ),
-            ),
-            // Street View Widget
-            if (_isStreetViewMode && _streetViewUrl != null)
-              Container(
-                height: 250,
-                margin: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Stack(
-                    children: [
-                      // Embedded Street View
-                      SizedBox(
-                        width: double.infinity,
-                        height: double.infinity,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Stack(
-                            children: [
-                              // Street View content
-                              _showStreetViewImage && _streetViewImageUrl != null
-                                  ? SizedBox(
-                                width: double.infinity,
-                                height: double.infinity,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    _streetViewImageUrl!,
-                                    fit: BoxFit.cover,
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Container(
-                                        color: Colors.grey[200],
-                                        child: Center(
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              CircularProgressIndicator(
-                                                value: loadingProgress.expectedTotalBytes != null
-                                                    ? loadingProgress.cumulativeBytesLoaded /
-                                                    loadingProgress.expectedTotalBytes!
-                                                    : null,
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                'Loading Street View...',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: Colors.grey[300],
-                                        child: Center(
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.error,
-                                                size: 48,
-                                                color: Colors.red[600],
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                'Failed to load Street View',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.red[600],
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'No Street View available at this location',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey[600],
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              )
-                                  : Container(
-                                width: double.infinity,
-                                height: double.infinity,
-                                color: Colors.grey[300],
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.streetview,
-                                        size: 48,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Street View',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Location: ${_streetViewLocation?.latitude.toStringAsFixed(4)}, ${_streetViewLocation?.longitude.toStringAsFixed(4)}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                        children: [
-                                          ElevatedButton.icon(
-                                            onPressed: _openStreetView,
-                                            icon: const Icon(Icons.open_in_new),
-                                            label: const Text('Open in Maps'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.blue,
-                                              foregroundColor: Colors.white,
-                                            ),
-                                          ),
-                                          ElevatedButton.icon(
-                                            onPressed: () {
-                                              if (_streetViewLocation != null) {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) => StreetViewScreen(
-                                                      startLocation: _currentLatLng ?? _streetViewLocation!,
-                                                      endLocation: _destinationMarker?.position ?? _streetViewLocation!,
-                                                      routePoints: _routePoints.isNotEmpty ? _routePoints : [_streetViewLocation!],
-                                                      streetViewUrl: _streetViewUrl,
-                                                      streetViewImageUrl: _streetViewImageUrl,
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            icon: const Icon(Icons.image),
-                                            label: const Text('Show Image'),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green,
-                                              foregroundColor: Colors.white,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Close button
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: GestureDetector(
-                          onTap: _toggleStreetView,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            if (_navigationSteps.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.navigation),
-                  label: const Text('Navigate'),
-                  onPressed: _showNavigationModal,
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-    // --- Mobile: Google Maps ---
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text('Map'),
+        title: Text(AppLocalizations.of(context)?.map ?? 'Map'),
         actions: [
           IconButton(
             icon: const Icon(Icons.security),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SecuritySetupScreen(),
-                ),
-              );
-            },
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SecuritySetupScreen())),
             tooltip: 'Security Settings',
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: _signOut,
+            onPressed: widget.signOut,
             tooltip: 'Sign Out',
           ),
         ],
@@ -1860,8 +876,311 @@ class _MapScreenState extends State<MapScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-          ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-          : Column(
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _destinationController,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Enter destination',
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  style: const TextStyle(color: Colors.black),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: () => _openPlaceSearch(),
+                                icon: const Icon(Icons.search, color: Colors.blue),
+                                tooltip: 'Search Places',
+                              ),
+                            ],
+                          ),
+                          if (_showSuggestions && _suggestions.isNotEmpty)
+                            Container(
+                              color: Colors.white,
+                              height: 200,
+                              child: ListView.builder(
+                                itemCount: _suggestions.length,
+                                itemBuilder: (context, index) {
+                                  final suggestion = _suggestions[index];
+                                  return ListTile(
+                                    title: Text(suggestion['description'], style: const TextStyle(color: Colors.black)),
+                                    onTap: () => _onSuggestionTap(suggestion),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          GoogleMap(
+                            initialCameraPosition: _initialPosition!,
+                            onMapCreated: (controller) => _mapController = controller,
+                            onTap: (location) => setState(() => _showSuggestions = false),
+                            myLocationEnabled: true,
+                            myLocationButtonEnabled: true,
+                            markers: {
+                              if (_userMarker != null) _userMarker!,
+                              if (_destinationMarker != null) _destinationMarker!,
+                            },
+                            polylines: _routePolyline != null ? {_routePolyline!} : {},
+                          ),
+                          Positioned(
+                            top: 16,
+                            right: 16,
+                            child: FloatingActionButton(
+                              heroTag: "street_view_toggle",
+                              onPressed: _toggleStreetView,
+                              backgroundColor: Colors.blue,
+                              child: const Icon(Icons.streetview, color: Colors.white),
+                            ),
+                          ),
+                          Positioned(
+                            top: 16,
+                            left: 16,
+                            child: FloatingActionButton(
+                              heroTag: "sms_share",
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => SmsShareWidget(
+                                    currentLocation: _currentLatLng,
+                                    title: AppLocalizations.of(context)?.shareLocation ?? 'Share Location',
+                                  ),
+                                );
+                              },
+                              backgroundColor: Colors.green,
+                              child: const Icon(Icons.share_location, color: Colors.white),
+                            ),
+                          ),
+                          Positioned(
+                            top: 80,
+                            left: 16,
+                            child: FloatingActionButton(
+                              heroTag: "search_places",
+                              onPressed: _openPlaceSearch,
+                              backgroundColor: const Color(0xFFCAE3F2),
+                              child: const Icon(Icons.search, color: Colors.black),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_destinationMarker != null)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _openAIRouteSelection,
+                                    icon: const Icon(Icons.psychology, color: Colors.white),
+                                    label: const Text('🤖 AI Route', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF9C27B0),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _openCustomPathSelection,
+                                    icon: const Icon(Icons.edit_road, color: Colors.white),
+                                    label: const Text('🛣️ Custom Path', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF8E44AD),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _startInAppNavigation,
+                                icon: const Icon(Icons.navigation, color: Colors.white),
+                                label: Text(AppLocalizations.of(context)?.startNavigation ?? 'Start Navigation', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4169E1),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+    );
+  }
+}
+
+// --- Web-specific widget (using Flutter Map) ---
+class _MapScreenWeb extends StatefulWidget {
+  final VoidCallback signOut;
+  const _MapScreenWeb({required this.signOut});
+
+  @override
+  State<_MapScreenWeb> createState() => _MapScreenWebState();
+}
+
+class _MapScreenWebState extends State<_MapScreenWeb> {
+  final TextEditingController _webFromController = TextEditingController();
+  final TextEditingController _webToController = TextEditingController();
+  latlng.LatLng? _webFromLatLng;
+  latlng.LatLng? _webToLatLng;
+  final ValueNotifier<latlng.LatLng> _webMapCenter = ValueNotifier(latlng.LatLng(28.6139, 77.2090));
+  final ValueNotifier<List<latlng.LatLng>> _webRoutePoints = ValueNotifier([]);
+  final ValueNotifier<List<Map<String, dynamic>>> _webFromSuggestions = ValueNotifier([]);
+  final ValueNotifier<List<Map<String, dynamic>>> _webToSuggestions = ValueNotifier([]);
+  final ValueNotifier<bool> _webShowFromSuggestions = ValueNotifier(false);
+  final ValueNotifier<bool> _webShowToSuggestions = ValueNotifier(false);
+  final ValueNotifier<List<Map<String, dynamic>>> _webGeoapifyPlaces = ValueNotifier([]);
+
+  @override
+  void initState() {
+    super.initState();
+    _webFromController.addListener(() => _webFetchFromSuggestions(_webFromController.text));
+    _webToController.addListener(() => _webFetchToSuggestions(_webToController.text));
+    _webSetUserLocation();
+  }
+
+  @override
+  void dispose() {
+    _webFromController.removeListener(() {});
+    _webToController.removeListener(() {});
+    _webFromController.dispose();
+    _webToController.dispose();
+    _webMapCenter.dispose();
+    _webRoutePoints.dispose();
+    _webFromSuggestions.dispose();
+    _webToSuggestions.dispose();
+    super.dispose();
+  }
+
+  Future<void> _webSetUserLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+      Position pos = await Geolocator.getCurrentPosition();
+      _webMapCenter.value = latlng.LatLng(pos.latitude, pos.longitude);
+      _webFromLatLng = _webMapCenter.value;
+    } catch (e) {
+      print('Web location error: $e');
+    }
+  }
+
+  Future<void> _webFetchFromSuggestions(String query) async {
+    if (query.isEmpty) {
+      _webFromSuggestions.value = [];
+      return;
+    }
+    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
+    final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      _webFromSuggestions.value = List<Map<String, dynamic>>.from(data);
+    }
+  }
+
+  Future<void> _webFetchToSuggestions(String query) async {
+    if (query.isEmpty) {
+      _webToSuggestions.value = [];
+      return;
+    }
+    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
+    final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      _webToSuggestions.value = List<Map<String, dynamic>>.from(data);
+    }
+  }
+
+  Future<void> _webFetchRoute(latlng.LatLng start, latlng.LatLng end) async {
+    final url = Uri.parse(
+      'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson',
+    );
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['routes'] != null && data['routes'].isNotEmpty) {
+        final coords = data['routes'][0]['geometry']['coordinates'] as List;
+        final List<latlng.LatLng> validPoints = [];
+        for (final c in coords) {
+          final lat = c[1];
+          final lon = c[0];
+          final point = _safeLatLng(lat, lon);
+          if (point != null) validPoints.add(point);
+        }
+        _webRoutePoints.value = validPoints;
+      } else {
+        _webRoutePoints.value = [];
+      }
+    }
+  }
+
+  latlng.LatLng? _safeLatLng(dynamic lat, dynamic lon) {
+    if (lat is num && lon is num && lat.isFinite && lon.isFinite && lat.abs() <= 90 && lon.abs() <= 180) {
+      return latlng.LatLng(lat.toDouble(), lon.toDouble());
+    }
+    return null;
+  }
+
+  bool _isValidLatLng(latlng.LatLng? point) {
+    return point != null && 
+           point.latitude.isFinite && 
+           point.longitude.isFinite && 
+           point.latitude.abs() <= 90 && 
+           point.longitude.abs() <= 180;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)?.map ?? 'Map'),
+        actions: [
+          const LanguageSelector(),
+          IconButton(
+            icon: const Icon(Icons.security),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SecuritySetupScreen())),
+            tooltip: AppLocalizations.of(context)?.securitySettings ?? 'Security Settings',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: widget.signOut,
+            tooltip: AppLocalizations.of(context)?.signOut ?? 'Sign Out',
+          ),
+        ],
+      ),
+      body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -1870,259 +1189,155 @@ class _MapScreenState extends State<MapScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _destinationController,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter destination',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(),
-                        ),
-                        style: const TextStyle(color: Colors.black), // Make input text black
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(AppLocalizations.of(context)?.from ?? 'From:'),
+                          TextField(
+                            controller: _webFromController,
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(context)?.startLocation ?? 'Start location',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: const OutlineInputBorder(),
+                            ),
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                          ValueListenableBuilder<List<Map<String, dynamic>>>(
+                            valueListenable: _webFromSuggestions,
+                            builder: (context, suggestions, _) {
+                              if (suggestions.isEmpty) return const SizedBox.shrink();
+                              return Container(
+                                color: Colors.white,
+                                height: 120,
+                                child: ListView.builder(
+                                  itemCount: suggestions.length,
+                                  itemBuilder: (context, index) {
+                                    final s = suggestions[index];
+                                    return ListTile(
+                                      title: Text(s['display_name'] ?? '', style: const TextStyle(color: Colors.black)),
+                                      onTap: () {
+                                        final lat = double.tryParse(s['lat'] ?? '0') ?? 0;
+                                        final lon = double.tryParse(s['lon'] ?? '0') ?? 0;
+                                        _webFromLatLng = _safeLatLng(lat, lon);
+                                        _webFromController.text = s['display_name'] ?? '';
+                                        _webFromSuggestions.value = [];
+                                      },
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () => _openPlaceSearch(),
-                      icon: const Icon(Icons.search, color: Colors.blue),
-                      tooltip: 'Search Places',
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(AppLocalizations.of(context)?.to ?? 'To:'),
+                          TextField(
+                            controller: _webToController,
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(context)?.destination ?? 'Destination',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: const OutlineInputBorder(),
+                            ),
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                          ValueListenableBuilder<List<Map<String, dynamic>>>(
+                            valueListenable: _webToSuggestions,
+                            builder: (context, suggestions, _) {
+                              if (suggestions.isEmpty) return const SizedBox.shrink();
+                              return Container(
+                                color: Colors.white,
+                                height: 120,
+                                child: ListView.builder(
+                                  itemCount: suggestions.length,
+                                  itemBuilder: (context, index) {
+                                    final s = suggestions[index];
+                                    return ListTile(
+                                      title: Text(s['display_name'] ?? '', style: const TextStyle(color: Colors.black)),
+                                      onTap: () {
+                                        final lat = double.tryParse(s['lat'] ?? '0') ?? 0;
+                                        final lon = double.tryParse(s['lon'] ?? '0') ?? 0;
+                                        _webToLatLng = _safeLatLng(lat, lon);
+                                        _webToController.text = s['display_name'] ?? '';
+                                        _webToSuggestions.value = [];
+                                      },
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (_webFromLatLng != null && _webToLatLng != null) {
+                          _webFetchRoute(_webFromLatLng!, _webToLatLng!);
+                          _webMapCenter.value = _webFromLatLng!;
+                        }
+                      },
+                      child: Text(AppLocalizations.of(context)?.getDirections ?? 'Get Directions'),
                     ),
                   ],
                 ),
-                if (_showSuggestions && _suggestions.isNotEmpty)
-                  Container(
-                    color: Colors.white,
-                    height: 200,
-                    child: ListView.builder(
-                      itemCount: _suggestions.length,
-                      itemBuilder: (context, index) {
-                        final suggestion = _suggestions[index];
-                        return ListTile(
-                          title: Text(
-                            suggestion['description'],
-                            style: const TextStyle(color: Colors.black), // Make suggestion text black
-                          ),
-                          onTap: () => _onSuggestionTap(suggestion),
-                        );
-                      },
-                    ),
-                  ),
               ],
             ),
           ),
           Expanded(
-            child: Stack(
-              children: [
-                GoogleMap(
-                  initialCameraPosition: _initialPosition!,
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                  },
-                  onTap: _onMapTap,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                  markers: {
-                    if (_userMarker != null) _userMarker!,
-                    if (_destinationMarker != null) _destinationMarker!,
-                  },
-                  polylines: _routePolyline != null ? {_routePolyline!} : {},
-                ),
-                // Street View Toggle Button
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: FloatingActionButton(
-                    heroTag: "street_view_toggle",
-                    onPressed: _toggleStreetView,
-                    backgroundColor: _isStreetViewMode ? Colors.orange : Colors.blue,
-                    child: Icon(
-                      _isStreetViewMode ? Icons.map : Icons.streetview,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                // SMS Share Button
-                Positioned(
-                  top: 16,
-                  left: 16,
-                  child: FloatingActionButton(
-                    heroTag: "sms_share",
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => SmsShareWidget(
-                          currentLocation: _currentLatLng,
-                          title: AppLocalizations.of(context)?.shareLocation ?? 'Share Location',
+            child: ValueListenableBuilder<latlng.LatLng>(
+              valueListenable: _webMapCenter,
+              builder: (context, center, _) {
+                if (_safeLatLng(center.latitude, center.longitude) == null) {
+                  return Center(child: Text(AppLocalizations.of(context)?.invalidMapCenter ?? 'Invalid map center. Please select valid locations.'));
+                }
+                return ValueListenableBuilder<List<latlng.LatLng>>(
+                  valueListenable: _webRoutePoints,
+                  builder: (context, routePoints, _) {
+                    final validRoutePoints = routePoints.where((p) => _safeLatLng(p.latitude, p.longitude) != null).toList();
+                    final markers = <fm.Marker>[];
+                    if (_webFromLatLng != null) {
+                      markers.add(fm.Marker(point: _webFromLatLng!, width: 40, height: 40, child: const Icon(Icons.location_pin, color: Colors.green, size: 40)));
+                    }
+                    if (_webToLatLng != null) {
+                      markers.add(fm.Marker(point: _webToLatLng!, width: 40, height: 40, child: const Icon(Icons.location_pin, color: Colors.red, size: 40)));
+                    }
+                    return fm.FlutterMap(
+                      options: fm.MapOptions(
+                        initialCenter: center,
+                        initialZoom: 13.0,
+                      ),
+                      children: [
+                        fm.TileLayer(
+                          urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          subdomains: const ['a', 'b', 'c'],
                         ),
-                      );
-                    },
-                    backgroundColor: Colors.green,
-                    child: const Icon(
-                      Icons.share_location,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                // Search Places Button
-                Positioned(
-                  top: 80,
-                  left: 16,
-                  child: FloatingActionButton(
-                    heroTag: "search_places",
-                    onPressed: _openPlaceSearch,
-                    backgroundColor: const Color(0xFFCAE3F2),
-                    child: const Icon(
-                      Icons.search,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ],
+                        fm.MarkerLayer(markers: markers),
+                        if (validRoutePoints.length > 1)
+                          fm.PolylineLayer(
+                            polylines: [
+                              fm.Polyline(
+                                points: validRoutePoints,
+                                color: Colors.blue,
+                                strokeWidth: 4.0,
+                              ),
+                            ],
+                          ),
+                      ],
+                    );
+                  },
+                );
+              },
             ),
           ),
-          if (_destinationMarker != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Route Selection Buttons
-                  Row(
-                    children: [
-                      // AI Route Selection Button
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _destinationMarker != null ? _openAIRouteSelection : null,
-                          icon: const Icon(Icons.psychology, color: Colors.white),
-                          label: Text(
-                            '🤖 AI Route',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _destinationMarker != null
-                                ? const Color(0xFF9C27B0)
-                                : Colors.grey,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Custom Path Selection Button
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: _destinationMarker != null ? _openCustomPathSelection : null,
-                          icon: const Icon(Icons.edit_road, color: Colors.white),
-                          label: Text(
-                            '🛣️ Custom Path',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _destinationMarker != null
-                                ? const Color(0xFF8E44AD)
-                                : Colors.grey,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Navigation Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _destinationMarker != null ? _startInAppNavigation : null,
-                      icon: const Icon(Icons.navigation, color: Colors.white),
-                      label: Text(
-                        AppLocalizations.of(context)?.startNavigation ?? 'Start Navigation',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _destinationMarker != null
-                            ? const Color(0xFF4169E1)
-                            : Colors.grey,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Detailed Navigation Button (if route is calculated)
-                  if (_navigationSteps.isNotEmpty)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _showNavigationModal,
-                        icon: const Icon(Icons.directions, color: Colors.white),
-                        label: Text(
-                          AppLocalizations.of(context)?.viewDirections ?? 'View Directions',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (_navigationSteps.isNotEmpty) const SizedBox(height: 8),
-                  // Street View Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _toggleStreetView,
-                      icon: Icon(
-                        _isStreetViewMode ? Icons.map : Icons.streetview,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        _isStreetViewMode
-                            ? (AppLocalizations.of(context)?.switchToMap ?? 'Switch to Map')
-                            : (AppLocalizations.of(context)?.streetView ?? 'Street View'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isStreetViewMode
-                            ? Colors.orange
-                            : const Color(0xFFCAE3F2),
-                        foregroundColor: _isStreetViewMode ? Colors.white : Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );

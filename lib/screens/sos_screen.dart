@@ -4,10 +4,9 @@ import 'package:contacts_service/contacts_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/sms_service.dart';
-import '../services/contact_service.dart';
+import '../services/user_profile_service.dart';
 import '../config/app_colors.dart';
 import 'contact_selection_screen.dart';
-import '../l10n/app_localizations.dart';
 
 class EmergencySOSScreen extends StatefulWidget {
   const EmergencySOSScreen({super.key});
@@ -29,6 +28,38 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _loadEmergencyContact();
+  }
+
+  Future<void> _loadEmergencyContact() async {
+    try {
+      final userProfile = await UserProfileService.getUserProfile();
+      if (userProfile != null && 
+          userProfile.emergencyContactName != null && 
+          userProfile.emergencyContactPhone != null) {
+        // Create a contact from the profile emergency contact
+        final emergencyContact = Contact(
+          displayName: userProfile.emergencyContactName,
+          phones: [Item(label: 'mobile', value: userProfile.emergencyContactPhone)],
+        );
+        
+        if (mounted) {
+          setState(() {
+            selectedContact = emergencyContact;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Emergency contact loaded from profile: ${userProfile.emergencyContactName}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading emergency contact: $e');
+      // If no emergency contact in profile, user can still select from contact book
+    }
   }
 
   Future<void> _getCurrentLocation() async {
@@ -42,23 +73,27 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location permission denied'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Location permission denied'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location permissions are permanently denied'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permissions are permanently denied'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
 
@@ -72,37 +107,43 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
         isLoadingLocation = false;
       });
     } catch (e) {
-      print('Error getting location: $e');
-      setState(() {
-        isLoadingLocation = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error getting location: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint('Error getting location: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingLocation = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error getting location: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   void startTimer() {
     if (selectedContact == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a contact first'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please set an emergency contact in your profile or select one from your contact book'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
     }
 
     if (currentLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to get current location'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to get current location'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
@@ -142,37 +183,45 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
           );
 
           if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('🚨 SOS Alert sent to ${selectedContact!.displayName ?? 'Contact'}!'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('🚨 SOS Alert sent to ${selectedContact!.displayName ?? 'Contact'}!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
           } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to send SOS alert. Please try again.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        } else {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Failed to send SOS alert. Please try again.'),
+                content: Text('Selected contact has no phone number'),
                 backgroundColor: Colors.red,
               ),
             );
           }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Selected contact has no phone number'),
-              backgroundColor: Colors.red,
-            ),
-          );
         }
       }
     } catch (e) {
-      print('Error sending SOS: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sending SOS: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint('Error sending SOS: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending SOS: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -254,7 +303,7 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
                           child: Column(
                             children: [
                               Text(
-                                'Select Emergency Contact',
+                                selectedContact != null ? 'Emergency Contact' : 'Select Emergency Contact',
                                 style: const TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 18,
@@ -266,7 +315,7 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: AppColors.success.withOpacity(0.2),
+                                    color: AppColors.success.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: AppColors.success,
@@ -297,7 +346,7 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
                                 ElevatedButton.icon(
                                   onPressed: _selectContact,
                                   icon: const Icon(Icons.person_add),
-                                  label: const Text('Select Contact'),
+                                  label: const Text('Select from Contact Book'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.error,
                                     foregroundColor: AppColors.textPrimary,
@@ -316,13 +365,13 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.success,
-                                width: 1,
-                              ),
+                            color: AppColors.success.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.success,
+                              width: 1,
                             ),
+                          ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -339,13 +388,13 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.error.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.error,
-                                width: 1,
-                              ),
+                            color: AppColors.error.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.error,
+                              width: 1,
                             ),
+                          ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -388,7 +437,7 @@ class _EmergencySOSScreenState extends State<EmergencySOSScreen> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.error.withOpacity(0.5),
+                                  color: AppColors.error.withValues(alpha: 0.5),
                                   blurRadius: 20,
                                   spreadRadius: 5,
                                 ),

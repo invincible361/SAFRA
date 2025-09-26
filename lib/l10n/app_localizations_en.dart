@@ -481,4 +481,210 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorLoadingRoute => 'Error loading route';
+
+  @override
+  String get biometricLock => 'Biometric Lock';
+
+  @override
+  String get biometricLockDesc => 'Use Face ID/Touch ID for app access';
+
+  @override
+  String get pinProtection => 'PIN Protection';
+
+  @override
+  String get pinProtectionDesc => 'Set a PIN code for additional security';
+
+  @override
+  String get dataBackup => 'Data Backup';
+
+  @override
+  String get dataBackupDesc => 'Automatically backup your data';
+
+  @override
+  String get emergencyAlerts => 'Emergency Alerts';
+
+  @override
+  String get emergencyAlertsDesc => 'Receive immediate emergency notifications';
+
+  @override
+  String get safetyReminders => 'Safety Reminders';
+
+  @override
+  String get safetyRemindersDesc => 'Get periodic safety tips and reminders';
+
+  @override
+  String get appPreferences => 'App Preferences';
+
+  @override
+  String get languageDesc => 'Choose your preferred language';
+
+  @override
+  String get theme => 'Theme';
+
+  @override
+  String get themeDesc => 'Select app theme';
+
+  @override
+  String get dataStorage => 'Data & Storage';
+
+  @override
+  String get clearCache => 'Clear Cache';
+
+  @override
+  String get clearCacheDesc => 'Clear temporary app data';
+
+  @override
+  String get exportData => 'Export Data';
+
+  @override
+  String get exportDataDesc => 'Download your app data';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get deleteAccountDesc => 'Permanently delete your account';
+
+  @override
+  String get appVersion => 'App Version';
+
+  @override
+  String get buildNumber => 'Build Number';
+
+  @override
+  String get lastUpdated => 'Last Updated';
+
+  @override
+  String get cacheCleared => 'Cache cleared successfully!';
+
+  @override
+  String get exportDataComingSoon => 'Data export feature coming soon!';
+
+  @override
+  String get evidenceUpload => 'Evidence Upload';
+
+  @override
+  String get saveEvidence => 'Save Evidence';
+
+  @override
+  String get attachments => 'Attachments';
+
+  @override
+  String get incidentDetails => 'Incident Details';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get addTag => 'Add tag';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get submitAnonymously => 'Submit anonymously';
+
+  @override
+  String get shareToCommunity => 'Share to community';
+
+  @override
+  String get postThisEvidenceToCommunityChat => 'Post this evidence to community chat';
+
+  @override
+  String get camera => 'Camera';
+
+  @override
+  String get video => 'Video';
+
+  @override
+  String get photos => 'Photos';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get enterLocationOrUseCurrent => 'Enter location or use current location';
+
+  @override
+  String get pickDate => 'Pick date';
+
+  @override
+  String get pickTime => 'Pick time';
+
+  @override
+  String get customPathCancelled => 'Custom path creation cancelled';
+
+  @override
+  String get customPathLoaded => 'Custom path loaded successfully!';
+
+  @override
+  String get showImage => 'Show Image';
+
+  @override
+  String get navigate => 'Navigate';
+
+  @override
+  String get invalidMapCenter => 'Invalid map center. Please select valid locations.';
+
+  @override
+  String get loadingStreetView => 'Loading Street View...';
+
+  @override
+  String get useCustomPath => 'Use Custom Path?';
+
+  @override
+  String get doYouWantToUseCustomPath => 'Do you want to use this custom path for navigation?';
+
+  @override
+  String get no => 'No';
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get customPathSelection => 'Custom Path Selection';
+
+  @override
+  String get clearWaypoints => 'Clear Waypoints';
+
+  @override
+  String get tapOnMapToAddWaypoints => 'Tap on the map to add waypoints';
+
+  @override
+  String get dragWaypointsToAdjust => 'Drag waypoints to adjust your route';
+
+  @override
+  String get saveCustomPath => 'Save Custom Path';
+
+  @override
+  String locationNumber(Object index) {
+    return 'Location $index';
+  }
+
+  @override
+  String get deleteAccountConfirm => 'Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data.';
+
+  @override
+  String get deleteAccountComingSoon => 'Account deletion feature coming soon!';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get getDirections => 'Get Directions';
+
+  @override
+  String get useCustomPathDescription => 'Do you want to use this custom path for navigation?';
+
+  @override
+  String get startLocation => 'Start location';
+
+  @override
+  String get to => 'To:';
+
+  @override
+  String get from => 'From:';
+
+  @override
+  String get couldNotOpenMaps => 'Could not open maps application';
 }

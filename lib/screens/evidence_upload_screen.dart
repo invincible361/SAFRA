@@ -6,7 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_colors.dart';
+import '../l10n/app_localizations.dart';
 
 // ANDROID PERMISSIONS (AndroidManifest.xml):
 // <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
@@ -62,6 +64,7 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
   String _category = 'Harassment';
   double _severity = 3; // 1–5
   bool _anonymous = true;
+  bool _shareToCommunity = false;
 
   // ===== Helpers =====
   String _dateLabel() {
@@ -175,7 +178,7 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
       }
     } catch (e) {
       _toast('Error picking photos: $e');
-      print('Error picking photos: $e');
+      debugPrint('Error picking photos: $e');
     }
   }
 
@@ -202,7 +205,7 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
       }
     } catch (e) {
       _toast('Camera error: $e');
-      print('Camera error: $e');
+      debugPrint('Camera error: $e');
     }
   }
 
@@ -232,7 +235,7 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
       }
     } catch (e) {
       _toast('Error picking video: $e');
-      print('Error picking video: $e');
+      debugPrint('Error picking video: $e');
     }
   }
 
@@ -262,7 +265,7 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
       }
     } catch (e) {
       _toast('Video recording error: $e');
-      print('Video recording error: $e');
+      debugPrint('Video recording error: $e');
     }
   }
 
@@ -277,7 +280,9 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
   }
 
   void _toast(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
   }
 
   Future<void> _saveEvidence() async {
@@ -294,9 +299,216 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
       return;
     }
 
-    // TODO: upload to backend
-    _toast('Evidence saved successfully!');
-    Navigator.pop(context);
+    try {
+      // Get current user
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) {
+        _toast('Please login to save evidence.');
+        return;
+      }
+
+      // Upload photos to Supabase storage
+      List<String> photoUrls = [];
+      if (_photos.isNotEmpty) {
+        photoUrls = await _uploadPhotos(currentUser.id);
+      }
+
+      // Upload videos to Supabase storage
+      List<String> videoUrls = [];
+      if (_videos.isNotEmpty) {
+        videoUrls = await _uploadVideos(currentUser.id);
+      }
+
+      // Verify database connection and table exists
+      try {
+        await Supabase.instance.client
+            .from('evidence')
+            .select('id')
+            .limit(1);
+        debugPrint('Evidence table exists, test query successful');
+      } catch (e) {
+        debugPrint('Evidence table check failed: $e');
+        _toast('Database connection issue. Please try again.');
+        return;
+      }
+
+      // Create evidence record in database
+      final evidenceData = {
+        'user_id': currentUser.id,
+        'category': _category,
+        'severity': _severity,
+        'incident_date': DateTime(
+          _date!.year,
+          _date!.month,
+          _date!.day,
+          _time!.hour,
+          _time!.minute,
+        ).toIso8601String(),
+        'location': _locationCtrl.text,
+        'notes': _notesCtrl.text,
+        'tags': _tags,
+        'photo_urls': photoUrls,
+        'video_urls': videoUrls,
+        'is_anonymous': _anonymous,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      await Supabase.instance.client
+          .from('evidence')
+          .insert(evidenceData)
+          .select()
+          .single();
+
+      // If user wants to share to community, post a message with photo URLs
+      if (_shareToCommunity) {
+        await _postToCommunity(currentUser, photoUrls, videoUrls);
+      }
+
+      _toast('Evidence saved successfully!');
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      String errorMessage = 'Error saving evidence';
+      if (e.toString().contains('404')) {
+        errorMessage = 'Evidence table not found. Please run database setup or contact support.';
+        debugPrint('Database table "evidence" not found. Run setup_evidence_table.dart or execute evidence_table_setup.sql');
+      } else if (e.toString().contains('403')) {
+        errorMessage = 'Permission denied. Please check your login status.';
+      } else if (e.toString().contains('401')) {
+        errorMessage = 'Authentication required. Please login again.';
+      } else {
+        errorMessage = 'Error saving evidence: ${e.toString().split('\n')[0]}';
+      }
+      _toast(errorMessage);
+      debugPrint('Error saving evidence: $e');
+    }
+  }
+
+  Future<List<String>> _uploadPhotos(String userId) async {
+    List<String> photoUrls = [];
+    
+    for (int i = 0; i < _photos.length; i++) {
+      final photo = _photos[i];
+      final fileName = 'evidence_${userId}_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+      final filePath = 'evidence/$userId/$fileName';
+      
+      try {
+        final file = File(photo.path);
+        final bytes = await file.readAsBytes();
+        
+        await Supabase.instance.client.storage
+            .from('evidence')
+            .uploadBinary(filePath, bytes);
+            
+        final publicUrl = Supabase.instance.client.storage
+            .from('evidence')
+            .getPublicUrl(filePath);
+            
+        photoUrls.add(publicUrl);
+      } catch (e) {
+        debugPrint('Error uploading photo $i: $e');
+        throw Exception('Failed to upload photo: $e');
+      }
+    }
+    
+    return photoUrls;
+  }
+
+  Future<List<String>> _uploadVideos(String userId) async {
+    List<String> videoUrls = [];
+    
+    for (int i = 0; i < _videos.length; i++) {
+      final video = _videos[i];
+      final fileName = 'evidence_${userId}_${DateTime.now().millisecondsSinceEpoch}_$i.mp4';
+      final filePath = 'evidence/$userId/$fileName';
+      
+      try {
+        final file = File(video.path);
+        final bytes = await file.readAsBytes();
+        
+        await Supabase.instance.client.storage
+            .from('evidence')
+            .uploadBinary(filePath, bytes);
+            
+        final publicUrl = Supabase.instance.client.storage
+            .from('evidence')
+            .getPublicUrl(filePath);
+            
+        videoUrls.add(publicUrl);
+      } catch (e) {
+        debugPrint('Error uploading video $i: $e');
+        throw Exception('Failed to upload video: $e');
+      }
+    }
+    
+    return videoUrls;
+  }
+
+  Future<void> _postToCommunity(User currentUser, List<String> photoUrls, List<String> videoUrls) async {
+    try {
+      // Create a community message with evidence summary and photo URLs
+      final evidenceSummary = _createEvidenceSummary();
+      
+      final message = {
+        'user_id': currentUser.id,
+        'user_email': currentUser.email ?? 'Unknown',
+        'user_name': currentUser.userMetadata?['full_name'] ?? 'Anonymous',
+        'message': evidenceSummary,
+        'created_at': DateTime.now().toIso8601String(),
+        'is_evidence': true,
+        'evidence_category': _category,
+        'evidence_severity': _severity,
+        'evidence_location': _locationCtrl.text,
+        'evidence_date': DateTime(
+          _date!.year,
+          _date!.month,
+          _date!.day,
+          _time!.hour,
+          _time!.minute,
+        ).toIso8601String(),
+        'evidence_media_count': _photos.length + _videos.length,
+        'evidence_tags': _tags,
+        'evidence_notes': _notesCtrl.text,
+        'evidence_photo_urls': photoUrls,
+        'evidence_video_urls': videoUrls,
+      };
+
+      await Supabase.instance.client
+          .from('community_messages')
+          .insert(message);
+
+      debugPrint('Evidence shared to community successfully');
+    } catch (e) {
+      debugPrint('Error posting to community: $e');
+      // Don't fail the entire evidence upload if community posting fails
+      // Just log the error
+    }
+  }
+
+  String _createEvidenceSummary() {
+    final dateStr = _date != null ? DateFormat.yMMMEd().format(_date!) : 'Unknown date';
+    final timeStr = _time != null ? _time!.format(context) : 'Unknown time';
+    final mediaCount = _photos.length + _videos.length;
+    
+    String summary = '📋 Evidence Report\n';
+    summary += 'Category: $_category\n';
+    summary += 'Severity: ${_severity.toStringAsFixed(1)}/5\n';
+    summary += 'Date: $dateStr at $timeStr\n';
+    summary += 'Location: ${_locationCtrl.text}\n';
+    summary += 'Media: $mediaCount files attached\n';
+    
+    if (_notesCtrl.text.isNotEmpty) {
+      summary += 'Notes: ${_notesCtrl.text}\n';
+    }
+    
+    if (_tags.isNotEmpty) {
+      summary += 'Tags: ${_tags.join(', ')}\n';
+    }
+    
+    summary += '\nShared from Evidence Upload';
+    
+    return summary;
   }
 
   @override
@@ -311,7 +523,7 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Evidence Upload'),
+        title: Text(AppLocalizations.of(context)?.evidenceUpload ?? 'Evidence Upload'),
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
@@ -491,10 +703,20 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: const BoxDecoration(),
-      child: SwitchListTile(
-        title: const Text('Submit anonymously', style: TextStyle(color: AppColors.textPrimary)),
-        value: _anonymous,
-        onChanged: (v) => setState(() => _anonymous = v),
+      child: Column(
+        children: [
+          SwitchListTile(
+            title: const Text('Submit anonymously', style: TextStyle(color: AppColors.textPrimary)),
+            value: _anonymous,
+            onChanged: (v) => setState(() => _anonymous = v),
+          ),
+          SwitchListTile(
+            title: const Text('Share to community', style: TextStyle(color: AppColors.textPrimary)),
+            subtitle: const Text('Post this evidence to community chat', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            value: _shareToCommunity,
+            onChanged: (v) => setState(() => _shareToCommunity = v),
+          ),
+        ],
       ),
     );
   }
@@ -505,7 +727,7 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
       child: ElevatedButton.icon(
         onPressed: _saveEvidence,
         icon: const Icon(Icons.cloud_upload),
-        label: const Text('Save Evidence'),
+        label: Text(AppLocalizations.of(context)?.saveEvidence ?? 'Save Evidence'),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryAccent,
           foregroundColor: Colors.white,
@@ -674,11 +896,11 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
   Widget _categoryDropdown() {
     return DropdownButtonFormField<String>(
       initialValue: _category,
-      dropdownColor: AppColors.glassBackground,
+      dropdownColor: Colors.white, // Changed to opaque white background
       style: const TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         filled: true,
-        fillColor: AppColors.glassBackground,
+        fillColor: Colors.white, // Changed to opaque white background
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.glassBorder),
@@ -690,7 +912,13 @@ class _EvidenceUploadScreenState extends State<EvidenceUploadScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       items: _categories
-          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+          .map((e) => DropdownMenuItem(
+                value: e, 
+                child: Text(
+                  e,
+                  style: const TextStyle(color: Colors.black), // Make text black
+                ),
+              ))
           .toList(),
       onChanged: (v) => setState(() => _category = v!),
     );

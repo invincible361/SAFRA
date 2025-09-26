@@ -1044,6 +1044,414 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error loading route'**
   String get errorLoadingRoute;
+
+  /// No description provided for @biometricLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometric Lock'**
+  String get biometricLock;
+
+  /// No description provided for @biometricLockDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Face ID/Touch ID for app access'**
+  String get biometricLockDesc;
+
+  /// No description provided for @pinProtection.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN Protection'**
+  String get pinProtection;
+
+  /// No description provided for @pinProtectionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a PIN code for additional security'**
+  String get pinProtectionDesc;
+
+  /// No description provided for @dataBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Backup'**
+  String get dataBackup;
+
+  /// No description provided for @dataBackupDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically backup your data'**
+  String get dataBackupDesc;
+
+  /// No description provided for @emergencyAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency Alerts'**
+  String get emergencyAlerts;
+
+  /// No description provided for @emergencyAlertsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive immediate emergency notifications'**
+  String get emergencyAlertsDesc;
+
+  /// No description provided for @safetyReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety Reminders'**
+  String get safetyReminders;
+
+  /// No description provided for @safetyRemindersDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Get periodic safety tips and reminders'**
+  String get safetyRemindersDesc;
+
+  /// No description provided for @appPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'App Preferences'**
+  String get appPreferences;
+
+  /// No description provided for @languageDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your preferred language'**
+  String get languageDesc;
+
+  /// No description provided for @theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// No description provided for @themeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Select app theme'**
+  String get themeDesc;
+
+  /// No description provided for @dataStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Data & Storage'**
+  String get dataStorage;
+
+  /// No description provided for @clearCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Cache'**
+  String get clearCache;
+
+  /// No description provided for @clearCacheDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear temporary app data'**
+  String get clearCacheDesc;
+
+  /// No description provided for @exportData.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Data'**
+  String get exportData;
+
+  /// No description provided for @exportDataDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Download your app data'**
+  String get exportDataDesc;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete your account'**
+  String get deleteAccountDesc;
+
+  /// No description provided for @appVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'App Version'**
+  String get appVersion;
+
+  /// No description provided for @buildNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Build Number'**
+  String get buildNumber;
+
+  /// No description provided for @lastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Updated'**
+  String get lastUpdated;
+
+  /// No description provided for @cacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache cleared successfully!'**
+  String get cacheCleared;
+
+  /// No description provided for @exportDataComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Data export feature coming soon!'**
+  String get exportDataComingSoon;
+
+  /// No description provided for @evidenceUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence Upload'**
+  String get evidenceUpload;
+
+  /// No description provided for @saveEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Evidence'**
+  String get saveEvidence;
+
+  /// No description provided for @attachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get attachments;
+
+  /// No description provided for @incidentDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Incident Details'**
+  String get incidentDetails;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// No description provided for @addTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tag'**
+  String get addTag;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @submitAnonymously.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit anonymously'**
+  String get submitAnonymously;
+
+  /// No description provided for @shareToCommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Share to community'**
+  String get shareToCommunity;
+
+  /// No description provided for @postThisEvidenceToCommunityChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Post this evidence to community chat'**
+  String get postThisEvidenceToCommunityChat;
+
+  /// No description provided for @camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// No description provided for @video.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get video;
+
+  /// No description provided for @photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get photos;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @enterLocationOrUseCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter location or use current location'**
+  String get enterLocationOrUseCurrent;
+
+  /// No description provided for @pickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick date'**
+  String get pickDate;
+
+  /// No description provided for @pickTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick time'**
+  String get pickTime;
+
+  /// No description provided for @customPathCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom path creation cancelled'**
+  String get customPathCancelled;
+
+  /// No description provided for @customPathLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom path loaded successfully!'**
+  String get customPathLoaded;
+
+  /// No description provided for @showImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Image'**
+  String get showImage;
+
+  /// No description provided for @navigate.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigate'**
+  String get navigate;
+
+  /// No description provided for @invalidMapCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid map center. Please select valid locations.'**
+  String get invalidMapCenter;
+
+  /// No description provided for @loadingStreetView.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Street View...'**
+  String get loadingStreetView;
+
+  /// No description provided for @useCustomPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Custom Path?'**
+  String get useCustomPath;
+
+  /// No description provided for @doYouWantToUseCustomPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to use this custom path for navigation?'**
+  String get doYouWantToUseCustomPath;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
+
+  /// No description provided for @yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No description provided for @customPathSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Path Selection'**
+  String get customPathSelection;
+
+  /// No description provided for @clearWaypoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Waypoints'**
+  String get clearWaypoints;
+
+  /// No description provided for @tapOnMapToAddWaypoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap on the map to add waypoints'**
+  String get tapOnMapToAddWaypoints;
+
+  /// No description provided for @dragWaypointsToAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag waypoints to adjust your route'**
+  String get dragWaypointsToAdjust;
+
+  /// No description provided for @saveCustomPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Custom Path'**
+  String get saveCustomPath;
+
+  /// No description provided for @locationNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Location {index}'**
+  String locationNumber(Object index);
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data.'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deletion feature coming soon!'**
+  String get deleteAccountComingSoon;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @getDirections.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Directions'**
+  String get getDirections;
+
+  /// No description provided for @useCustomPathDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to use this custom path for navigation?'**
+  String get useCustomPathDescription;
+
+  /// No description provided for @startLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Start location'**
+  String get startLocation;
+
+  /// No description provided for @to.
+  ///
+  /// In en, this message translates to:
+  /// **'To:'**
+  String get to;
+
+  /// No description provided for @from.
+  ///
+  /// In en, this message translates to:
+  /// **'From:'**
+  String get from;
+
+  /// No description provided for @couldNotOpenMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open maps application'**
+  String get couldNotOpenMaps;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

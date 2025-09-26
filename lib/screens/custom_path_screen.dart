@@ -235,22 +235,22 @@ class _CustomPathScreenState extends State<CustomPathScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Use Custom Path?'),
-          content: const Text('Do you want to use this custom path for navigation?'),
+          title: Text(AppLocalizations.of(context)?.useCustomPath ?? 'Use Custom Path?'),
+          content: Text(AppLocalizations.of(context)?.useCustomPathDescription ?? 'Do you want to use this custom path for navigation?'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
                 Navigator.pop(context, null); // Return null to indicate no path selected
               },
-              child: const Text('No'),
+              child: Text(AppLocalizations.of(context)?.no ?? 'No'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
                 Navigator.pop(context, _customPath); // Return the custom path
               },
-              child: const Text('Yes'),
+              child: Text(AppLocalizations.of(context)?.yes ?? 'Yes'),
             ),
           ],
         );

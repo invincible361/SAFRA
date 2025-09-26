@@ -48,9 +48,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
           .from('community_messages')
           .select('*')
           .order('created_at', ascending: true)
-          .limit(50);
+          .limit(100); // Increased limit to show more messages
 
       print('Messages loaded: ${response.length}');
+      print('Response data: $response'); // Debug the actual data
       
       setState(() {
         _messages = (response as List)
@@ -59,6 +60,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
       });
 
       print('Messages in state: ${_messages.length}');
+      print('Evidence messages: ${_messages.where((m) => m.isEvidence).length}'); // Count evidence messages
       _scrollToBottom();
     } catch (e) {
       print('Error loading messages: $e');
@@ -73,9 +75,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
         .order('created_at', ascending: true)
         .listen((data) {
       print('Realtime update received: ${data.length} messages');
+      print('Realtime data: $data'); // Debug the realtime data
       setState(() {
         _messages = data.map((msg) => ChatMessage.fromJson(msg)).toList();
       });
+      print('Evidence messages after realtime update: ${_messages.where((m) => m.isEvidence).length}');
       _scrollToBottom();
     }, onError: (error) {
       print('Realtime subscription error: $error');
@@ -398,6 +402,42 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       ),
                     ),
                   const SizedBox(height: 4),
+                  // Evidence indicator if this is an evidence post
+                  if (message.isEvidence)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange, width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.assignment, color: Colors.orange, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Evidence: ${message.evidenceCategory ?? "Unknown"}',
+                            style: TextStyle(
+                              color: isMe ? Colors.orange[800] : Colors.orange,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (message.evidenceSeverity != null) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              'Severity: ${message.evidenceSeverity!.toStringAsFixed(1)}/5',
+                              style: TextStyle(
+                                color: isMe ? Colors.orange[700] : Colors.orange[300],
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   Text(
                     message.message,
                     style: TextStyle(
@@ -405,6 +445,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       fontSize: 14,
                     ),
                   ),
+                  // Display evidence photos if available
+                  if (message.isEvidence && message.evidencePhotoUrls != null && message.evidencePhotoUrls!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _buildEvidencePhotos(message.evidencePhotoUrls!, isMe),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     _formatTime(message.createdAt),
@@ -450,6 +495,122 @@ class _CommunityScreenState extends State<CommunityScreen> {
     } else {
       return '${difference.inDays}d ago';
     }
+  }
+
+  Widget _buildEvidencePhotos(List<String> photoUrls, bool isMe) {
+    if (photoUrls.isEmpty) return const SizedBox.shrink();
+    
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (photoUrls.length == 1)
+            // Single photo - display larger
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                photoUrls.first,
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  );
+                },
+              ),
+            )
+          else
+            // Multiple photos - display in grid
+            SizedBox(
+              height: 150,
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                  childAspectRatio: 1.5,
+                ),
+                itemCount: photoUrls.length > 4 ? 4 : photoUrls.length,
+                itemBuilder: (context, index) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          photoUrls[index],
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: Colors.grey[800],
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey[800],
+                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                            );
+                          },
+                        ),
+                        if (index == 3 && photoUrls.length > 4)
+                          Container(
+                            color: Colors.black.withOpacity(0.6),
+                            child: Center(
+                              child: Text(
+                                '+${photoUrls.length - 4}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   void _showCommunityInfo() {
@@ -533,6 +694,16 @@ class ChatMessage {
   final String userName;
   final String message;
   final DateTime createdAt;
+  final bool isEvidence;
+  final String? evidenceCategory;
+  final double? evidenceSeverity;
+  final String? evidenceLocation;
+  final DateTime? evidenceDate;
+  final int? evidenceMediaCount;
+  final List<String>? evidenceTags;
+  final String? evidenceNotes;
+  final List<String>? evidencePhotoUrls;
+  final List<String>? evidenceVideoUrls;
 
   ChatMessage({
     required this.id,
@@ -541,6 +712,16 @@ class ChatMessage {
     required this.userName,
     required this.message,
     required this.createdAt,
+    this.isEvidence = false,
+    this.evidenceCategory,
+    this.evidenceSeverity,
+    this.evidenceLocation,
+    this.evidenceDate,
+    this.evidenceMediaCount,
+    this.evidenceTags,
+    this.evidenceNotes,
+    this.evidencePhotoUrls,
+    this.evidenceVideoUrls,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -551,6 +732,16 @@ class ChatMessage {
       userName: json['user_name'] ?? '',
       message: json['message'] ?? '',
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      isEvidence: json['is_evidence'] ?? false,
+      evidenceCategory: json['evidence_category'],
+      evidenceSeverity: json['evidence_severity']?.toDouble(),
+      evidenceLocation: json['evidence_location'],
+      evidenceDate: json['evidence_date'] != null ? DateTime.parse(json['evidence_date']) : null,
+      evidenceMediaCount: json['evidence_media_count'],
+      evidenceTags: json['evidence_tags'] != null ? List<String>.from(json['evidence_tags']) : null,
+      evidenceNotes: json['evidence_notes'],
+      evidencePhotoUrls: json['evidence_photo_urls'] != null ? List<String>.from(json['evidence_photo_urls']) : null,
+      evidenceVideoUrls: json['evidence_video_urls'] != null ? List<String>.from(json['evidence_video_urls']) : null,
     );
   }
 }
