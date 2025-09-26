@@ -10,7 +10,7 @@ import 'contact_selection_screen.dart';
 import '../l10n/app_localizations.dart';
 
 class EmergencySOSScreen extends StatefulWidget {
-  const EmergencySOSScreen({Key? key}) : super(key: key);
+  const EmergencySOSScreen({super.key});
 
   @override
   State<EmergencySOSScreen> createState() => _EmergencySOSScreenState();

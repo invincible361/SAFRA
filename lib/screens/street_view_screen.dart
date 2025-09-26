@@ -12,13 +12,13 @@ class StreetViewScreen extends StatefulWidget {
   final String? streetViewImageUrl;
 
   const StreetViewScreen({
-    Key? key,
+    super.key,
     required this.startLocation,
     required this.endLocation,
     required this.routePoints,
     this.streetViewUrl,
     this.streetViewImageUrl,
-  }) : super(key: key);
+  });
 
   @override
   State<StreetViewScreen> createState() => _StreetViewScreenState();
@@ -27,8 +27,8 @@ class StreetViewScreen extends StatefulWidget {
 class _StreetViewScreenState extends State<StreetViewScreen> {
   bool _isLoading = true;
   int _currentPointIndex = 0;
-  List<String> _streetViewImageUrls = [];
-  List<String> _streetViewUrls = [];
+  final List<String> _streetViewImageUrls = [];
+  final List<String> _streetViewUrls = [];
 
   // Camera params
   double _currentHeading = 210.0;
@@ -182,35 +182,29 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                   ? ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: GestureDetector(
-                  onHorizontalDragUpdate: (details) {
-                    // Rotate based on horizontal drag
-                    setState(() {
-                      _currentHeading += details.delta.dx * 2; // Sensitivity multiplier
-                      // Keep heading between 0-360 degrees
-                      if (_currentHeading > 360) _currentHeading -= 360;
-                      if (_currentHeading < 0) _currentHeading += 360;
-                    });
-                    // Regenerate street view with new heading
-                    _updateStreetViewForCurrentPoint();
-                  },
-                  onVerticalDragUpdate: (details) {
-                    // Adjust pitch based on vertical drag
-                    setState(() {
-                      _currentPitch += details.delta.dy * 0.5; // Sensitivity multiplier
-                      // Keep pitch between -90 and 90 degrees
-                      _currentPitch = _currentPitch.clamp(-90.0, 90.0);
-                    });
-                    // Regenerate street view with new pitch
-                    _updateStreetViewForCurrentPoint();
-                  },
                   onScaleUpdate: (details) {
-                    // Adjust FOV based on pinch/scale
+                    // Handle both pan and scale gestures using scale recognizer
                     setState(() {
-                      _currentFov += (details.scale - 1) * 10; // Sensitivity multiplier
-                      // Keep FOV between 30 and 120 degrees
-                      _currentFov = _currentFov.clamp(30.0, 120.0);
+                      // Handle pan movement (when not scaling)
+                      if (details.scale == 1.0) {
+                        // Rotate based on horizontal movement
+                        _currentHeading += details.focalPointDelta.dx * 1.5;
+                        // Keep heading between 0-360 degrees
+                        if (_currentHeading > 360) _currentHeading -= 360;
+                        if (_currentHeading < 0) _currentHeading += 360;
+                        
+                        // Adjust pitch based on vertical movement
+                        _currentPitch -= details.focalPointDelta.dy * 0.3;
+                        // Keep pitch between -90 and 90 degrees
+                        _currentPitch = _currentPitch.clamp(-90.0, 90.0);
+                      } else {
+                        // Handle scale/zoom (FOV adjustment)
+                        _currentFov += (details.scale - 1) * 8;
+                        // Keep FOV between 30 and 120 degrees
+                        _currentFov = _currentFov.clamp(30.0, 120.0);
+                      }
                     });
-                    // Regenerate street view with new FOV
+                    // Regenerate street view with new parameters
                     _updateStreetViewForCurrentPoint();
                   },
                   child: Stack(
@@ -255,7 +249,7 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
                               ),
                               SizedBox(width: 4),
                               Text(
-                                'Swipe to rotate',
+                                'Drag to rotate & tilt',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,

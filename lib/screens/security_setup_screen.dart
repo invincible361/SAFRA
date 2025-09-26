@@ -4,7 +4,7 @@ import 'package:local_auth/local_auth.dart';
 import '../services/biometric_service.dart';
 
 class SecuritySetupScreen extends StatefulWidget {
-  const SecuritySetupScreen({Key? key}) : super(key: key);
+  const SecuritySetupScreen({super.key});
 
   @override
   State<SecuritySetupScreen> createState() => _SecuritySetupScreenState();
@@ -419,7 +419,7 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
                         const SizedBox(width: 8),
                         Text(
                           _currentSecurityMethod != null
-                              ? 'Security Enabled (${_currentSecurityMethod})'
+                              ? 'Security Enabled ($_currentSecurityMethod)'
                               : 'No Security Method Set',
                           style: TextStyle(
                             color: _currentSecurityMethod != null

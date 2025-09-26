@@ -12,10 +12,10 @@ class SmsShareWidget extends StatefulWidget {
   final String? title;
 
   const SmsShareWidget({
-    Key? key,
+    super.key,
     this.currentLocation,
     this.title,
-  }) : super(key: key);
+  });
 
   @override
   State<SmsShareWidget> createState() => _SmsShareWidgetState();

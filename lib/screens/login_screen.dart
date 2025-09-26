@@ -3,9 +3,8 @@ import 'package:safra_app/screens/signup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-import '../l10n/app_localizations.dart';
+import 'package:provider/provider.dart' as provider;
 import '../widgets/language_selector.dart';
-import '../widgets/translated_text.dart';
 import '../services/enhanced_language_service.dart';
 import '../services/biometric_service.dart';
 import '../config/oauth_config.dart';
@@ -197,6 +196,12 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
           _errorMessage = 'Invalid credentials';
         });
+      } else {
+        // Login successful - auth state listener will handle navigation
+        print('Login successful - user: ${response.user?.email}');
+        print('Auth state change should be triggered');
+        // Don't reset loading state here, let the auth listener handle it
+        return;
       }
     } catch (e) {
       setState(() {
@@ -204,7 +209,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _errorMessage = e.toString();
       });
     } finally {
-      setState(() => _isLoading = false);
+      // Only reset loading if login failed or had error
+      if (mounted && _errorMessage != null) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -326,22 +334,31 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Image.asset('assets/logo.png', height: 100),
                 ),
                 const SizedBox(height: 30),
-                TranslatedText(
-                  text: 'Welcome Back',
-                  staticKey: 'welcome',
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                TranslatedText(
-                  text: "Let's Get Started",
-                  staticKey: 'getStarted',
-                  style: TextStyle(
-                      fontSize: 16, color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
+                provider.Consumer<EnhancedLanguageService>(
+                  builder: (context, languageService, child) {
+                    final welcomeText = languageService.getStaticTranslation('welcome');
+                    final getStartedText = languageService.getStaticTranslation('getStarted');
+                    
+                    return Column(
+                      children: [
+                        Text(
+                          welcomeText,
+                          style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          getStartedText,
+                          style: TextStyle(
+                              fontSize: 16, color: AppColors.textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 40),
 
@@ -362,20 +379,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _sendPasswordResetEmail,
-                    child: Text(
-                      "Forgot Password?",
-                      style: TextStyle(color: AppColors.secondaryAccent),
-                    ),
-                  ),
+                provider.Consumer<EnhancedLanguageService>(
+                  builder: (context, languageService, child) {
+                    return Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _sendPasswordResetEmail,
+                        child: Text(
+                          languageService.getStaticTranslation('forgotPassword'),
+                          style: TextStyle(color: AppColors.secondaryAccent),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
 
                 // Login Button
-                _buildGradientButton("Login", _login),
+                provider.Consumer<EnhancedLanguageService>(
+                  builder: (context, languageService, child) {
+                    return _buildGradientButton(languageService.getStaticTranslation('login'), _login);
+                  },
+                ),
                 const SizedBox(height: 16),
 
                 if (_errorMessage != null)
@@ -398,10 +423,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   children: [
                     const Expanded(child: Divider(color: Colors.white24)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text("OR",
-                          style: TextStyle(color: Colors.grey[400])),
+                    provider.Consumer<EnhancedLanguageService>(
+                      builder: (context, languageService, child) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(languageService.getStaticTranslation('or'),
+                              style: TextStyle(color: Colors.grey[400])),
+                        );
+                      },
                     ),
                     const Expanded(child: Divider(color: Colors.white24)),
                   ],
@@ -414,23 +443,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 30),
 
                 // Signup Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account?",
-                        style: TextStyle(color: AppColors.textSecondary)),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const SignUpScreen()),
-                        );
-                      },
-                      child: Text("Sign Up",
-                          style: TextStyle(color: AppColors.secondaryAccent)),
-                    )
-                  ],
+                provider.Consumer<EnhancedLanguageService>(
+                  builder: (context, languageService, child) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(languageService.getStaticTranslation('dontHaveAccount'),
+                            style: const TextStyle(color: AppColors.textSecondary)),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SignUpScreen()),
+                            );
+                          },
+                          child: Text(languageService.getStaticTranslation('signUp'),
+                              style: TextStyle(color: AppColors.secondaryAccent)),
+                        )
+                      ],
+                    );
+                  },
                 ),
               ],
             ),

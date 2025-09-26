@@ -10,10 +10,10 @@ class PlaceSearchScreen extends StatefulWidget {
   final String? initialQuery;
 
   const PlaceSearchScreen({
-    Key? key,
+    super.key,
     required this.onPlaceSelected,
     this.initialQuery,
-  }) : super(key: key);
+  });
 
   @override
   State<PlaceSearchScreen> createState() => _PlaceSearchScreenState();

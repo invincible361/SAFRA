@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:safra_app/screens/main_screen.dart';
 
 class SetPasswordScreen extends StatefulWidget {
   final String fullName;

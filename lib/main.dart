@@ -22,28 +22,29 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Load environment variables
-  try {
-    await dotenv.load(fileName: "assets/.env");
-    print("Successfully loaded .env file");
-    // Test if we can access the API key
-    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
-    if (apiKey != null && apiKey.isNotEmpty) {
-      print("API key loaded successfully: ${apiKey.substring(0, 10)}...");
-      ApiConfig.setGoogleApiKey(apiKey);
-    } else {
-      print("Warning: API key is empty or null");
-    }
-  } catch (e) {
-    print("Warning: Could not load .env file: $e");
-    print("Make sure to create a .env file in the assets folder");
-  }
+  // Load environment variables asynchronously without blocking
+  _loadEnvironmentVariables();
   
+  // Initialize Supabase immediately
   await Supabase.initialize(
     url: OAuthConfig.supabaseUrl,
     anonKey: OAuthConfig.supabaseAnonKey,
   );
+  
   runApp(const MyApp());
+}
+
+// Load environment variables in background
+Future<void> _loadEnvironmentVariables() async {
+  try {
+    await dotenv.load(fileName: "assets/.env");
+    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
+    if (apiKey != null && apiKey.isNotEmpty) {
+      ApiConfig.setGoogleApiKey(apiKey);
+    }
+  } catch (e) {
+    // Silent fail - API key can be loaded later when needed
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -118,7 +119,9 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   StreamSubscription<AuthState>? _authSubscription;
   bool _isLoading = true;
   Widget? _currentScreen;
-  bool _biometricChecked = false;
+  final bool _biometricChecked = false;
+  int _screenRebuildKey = 0; // Add a key to force rebuilds
+  bool _forceRebuild = false; // Add flag to force complete rebuild
 
   @override
   void initState() {
@@ -138,129 +141,117 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   }
 
   Future<void> _initializeApp() async {
-    // Always listen for auth changes first
+    // Set up auth state listener (but don't wait for it)
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
       final event = data.event;
       final session = data.session;
       
-      print('**** onAuthStateChange: $event');
-      print('Session data: ${session != null ? session.toJson() : "null"}');
-      print('Current user: ${session?.user?.email ?? "no user"}');
-      print('User ID: ${session?.user?.id ?? "no id"}');
-      print('Event type: ${event.runtimeType}');
-      print('Is signed in event: ${event == AuthChangeEvent.signedIn}');
-      print('Is session not null: ${session != null}');
-      
-      // Handle all possible OAuth events
+      // Handle auth state changes efficiently
       if (event == AuthChangeEvent.signedIn && session != null) {
-        // User is signed in, set authenticated state and go to dashboard screen (no biometric check)
-        print('User signed in, setting authenticated state and navigating to dashboard screen');
         AppLifecycleService().setAuthenticated(true);
-        if (mounted) {
-          setState(() {
-            _currentScreen = const DashboardScreen();
-            _isLoading = false;
-          });
-          print('Successfully set current screen to DashboardScreen');
-        } else {
-          print('Widget not mounted when trying to navigate to DashboardScreen');
-        }
+        final userFullName = _getUserFullName(session.user);
+        _forceNavigateToDashboard(userFullName);
       } else if (event == AuthChangeEvent.signedOut) {
-        // Check if this is a legitimate sign out or just OAuth flow
-        print('User signed out event detected');
-        
-        // Wait a moment to see if this is just part of the OAuth flow
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        // Check if we actually have a session now (OAuth might have completed)
+        // Quick check for OAuth completion without delay
         final currentSession = Supabase.instance.client.auth.currentSession;
         if (currentSession != null) {
-          print('OAuth completed after sign out event, user is authenticated');
           AppLifecycleService().setAuthenticated(true);
-          if (mounted) {
-            setState(() {
-              _currentScreen = const DashboardScreen();
-              _isLoading = false;
-            });
-            print('Successfully set current screen to DashboardScreen after OAuth completion');
-          }
+          final userFullName = _getUserFullName(currentSession.user);
+          _forceNavigateToDashboard(userFullName);
         } else {
-          // This is a real sign out
-          print('Real sign out confirmed, clearing authenticated state and navigating to login screen');
           AppLifecycleService().setAuthenticated(false);
           if (mounted) {
             setState(() {
               _currentScreen = const LoginScreen();
               _isLoading = false;
+              _screenRebuildKey++;
             });
-            print('Successfully set current screen to LoginScreen');
-          } else {
-            print('Widget not mounted when trying to navigate to LoginScreen');
           }
         }
-      } else if (event == AuthChangeEvent.tokenRefreshed && session != null) {
-        // Token refreshed, user is still authenticated
-        print('Token refreshed, user remains authenticated');
+      } else if ((event == AuthChangeEvent.tokenRefreshed || event == AuthChangeEvent.userUpdated) && session != null) {
         AppLifecycleService().setAuthenticated(true);
         if (mounted && _currentScreen is! DashboardScreen) {
+          final userFullName = _getUserFullName(session.user);
           setState(() {
-            _currentScreen = const DashboardScreen();
+            _currentScreen = DashboardScreen(userFullName: userFullName);
             _isLoading = false;
           });
-          print('Successfully set current screen to DashboardScreen after token refresh');
         }
-      } else if (event == AuthChangeEvent.userUpdated && session != null) {
-        // User updated, still authenticated
-        print('User updated, user remains authenticated');
-        AppLifecycleService().setAuthenticated(true);
-        if (mounted && _currentScreen is! DashboardScreen) {
-          setState(() {
-            _currentScreen = const DashboardScreen();
-            _isLoading = false;
-          });
-          print('Successfully set current screen to DashboardScreen after user update');
-        }
-      } else {
-        print('Auth state change not handled - event: $event, session: ${session != null ? "exists" : "null"}');
-        print('Condition check: event == AuthChangeEvent.signedIn: ${event == AuthChangeEvent.signedIn}');
-        print('Condition check: session != null: ${session != null}');
       }
     });
 
-    print('Auth state listener set up successfully');
-    
-    // Test the auth state listener by checking current session
-    final testSession = Supabase.instance.client.auth.currentSession;
-    print('Test: Current session check: ${testSession != null ? "exists" : "null"}');
-    
-    // Check current auth state
+    // Check current auth state immediately
     final session = Supabase.instance.client.auth.currentSession;
-    print('Current session on app start: ${session != null ? "exists" : "null"}');
     if (session != null) {
-      print('Session user email: ${session.user?.email ?? "no email"}');
-      print('Session user ID: ${session.user?.id ?? "no id"}');
-      
-      // User is already authenticated, check if biometric security is needed
+      // User is already authenticated
       AppLifecycleService().setAuthenticated(true);
-      await _checkStartupBiometric();
+      // Use immediate navigation without biometric check for faster startup
+      final userFullName = _getUserFullName(session.user);
+      setState(() {
+        _currentScreen = DashboardScreen(userFullName: userFullName);
+        _isLoading = false;
+      });
     } else {
-      // No session, go to login page
-      print('App starting - no session, going to login page');
+      // No session, go to login page immediately
       if (mounted) {
         setState(() {
           _currentScreen = const LoginScreen();
           _isLoading = false;
         });
-        print('Successfully set current screen to LoginScreen (app startup)');
       }
     }
+  }
+
+  String _getUserFullName(User user) {
+    // Try to get name from user metadata first
+    final userMetadata = user.userMetadata;
+    if (userMetadata != null) {
+      final fullName = userMetadata['full_name'] as String?;
+      if (fullName != null && fullName.isNotEmpty) {
+        return fullName;
+      }
+      
+      // Try first_name and last_name
+      final firstName = userMetadata['first_name'] as String? ?? '';
+      final lastName = userMetadata['last_name'] as String? ?? '';
+      if (firstName.isNotEmpty || lastName.isNotEmpty) {
+        return '$firstName $lastName'.trim();
+      }
+    }
+    
+    // Fallback to email (extract name before @)
+    if (user.email != null && user.email!.isNotEmpty) {
+      final emailName = user.email!.split('@').first;
+      // Convert email format to proper name (e.g., "aditya.jain" -> "Aditya Jain")
+      return emailName.split('.').map((part) => 
+        part.isNotEmpty ? '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}' : ''
+      ).join(' ').trim();
+    }
+    
+    // Final fallback
+    return 'User';
   }
 
   Future<void> _checkStartupBiometric() async {
     try {
       print('Main: Checking if startup biometric authentication is needed...');
       
+      // Get current session and user
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) {
+        print('Main: No session found, redirecting to login');
+        if (mounted) {
+          setState(() {
+            _currentScreen = const LoginScreen();
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+      
+      final userFullName = _getUserFullName(session.user);
       final isSecurityEnabled = await BiometricService.isSecurityEnabled();
+      
       if (isSecurityEnabled) {
         print('Main: Security enabled, triggering startup biometric check');
         await _handleBiometricAuthentication();
@@ -268,7 +259,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
         // If biometric succeeds, go to dashboard screen
         if (mounted) {
           setState(() {
-            _currentScreen = const DashboardScreen();
+            _currentScreen = DashboardScreen(userFullName: userFullName);
             _isLoading = false;
           });
           print('Successfully set current screen to DashboardScreen after biometric check');
@@ -278,7 +269,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
         print('Main: No security enabled, going directly to dashboard screen');
         if (mounted) {
           setState(() {
-            _currentScreen = const DashboardScreen();
+            _currentScreen = DashboardScreen(userFullName: userFullName);
             _isLoading = false;
           });
           print('Successfully set current screen to DashboardScreen (no security)');
@@ -289,7 +280,9 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
       // On error, go to dashboard screen (user is authenticated)
       if (mounted) {
         setState(() {
-          _currentScreen = const DashboardScreen();
+          final session = Supabase.instance.client.auth.currentSession;
+          final userFullName = session != null ? _getUserFullName(session.user) : 'User';
+          _currentScreen = DashboardScreen(userFullName: userFullName);
           _isLoading = false;
         });
       }
@@ -422,6 +415,21 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     try {
       print('Checking biometric security...');
       
+      // Get current session and user
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) {
+        print('No session found, redirecting to login');
+        if (mounted) {
+          setState(() {
+            _currentScreen = const LoginScreen();
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+      
+      final userFullName = _getUserFullName(session.user);
+      
       // Check if biometric security is enabled
       final isSecurityEnabled = await BiometricService.isSecurityEnabled();
       print('Security enabled: $isSecurityEnabled');
@@ -438,7 +446,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           // No security enabled, go directly to dashboard screen (user is already authenticated)
           print('No security enabled, going directly to dashboard screen');
           setState(() {
-            _currentScreen = const DashboardScreen();
+            _currentScreen = DashboardScreen(userFullName: userFullName);
             _isLoading = false;
           });
         }
@@ -449,8 +457,10 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
       print('Error in _checkBiometricAndNavigate: $e');
       // If there's an error, go to dashboard screen (user is authenticated)
       if (mounted) {
+        final session = Supabase.instance.client.auth.currentSession;
+        final userFullName = session != null ? _getUserFullName(session.user) : 'User';
         setState(() {
-          _currentScreen = const DashboardScreen();
+          _currentScreen = DashboardScreen(userFullName: userFullName);
           _isLoading = false;
         });
       }
@@ -465,30 +475,64 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     if (session != null && mounted) {
       print('Manual auth check - User authenticated, navigating to dashboard');
       AppLifecycleService().setAuthenticated(true);
+      final userFullName = _getUserFullName(session.user);
       setState(() {
-        _currentScreen = const DashboardScreen();
+        _currentScreen = DashboardScreen(userFullName: userFullName);
         _isLoading = false;
+        _screenRebuildKey++;
       });
     } else if (mounted) {
       print('Manual auth check - No session, staying on login');
       setState(() {
         _currentScreen = const LoginScreen();
         _isLoading = false;
+        _screenRebuildKey++;
+      });
+    }
+  }
+  
+  // Simplified force navigation - immediate and efficient
+  void _forceNavigateToDashboard(String userFullName) {
+    if (mounted) {
+      print('Force navigating to dashboard with user: $userFullName');
+      
+      // Single, immediate navigation without delays
+      setState(() {
+        _currentScreen = DashboardScreen(userFullName: userFullName);
+        _isLoading = false;
+        _screenRebuildKey++; // Single increment is sufficient
+        _forceRebuild = false; // Reset immediately
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print('Main build method called - _isLoading: $_isLoading, _currentScreen: ${_currentScreen?.runtimeType}, key: $_screenRebuildKey, forceRebuild: $_forceRebuild');
+    
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
+      return Scaffold(
+        key: ValueKey('loading_screen_$_screenRebuildKey'),
+        body: const Center(
           child: CircularProgressIndicator(),
         ),
       );
     }
     
     // Return the current screen or login screen as fallback
-    return _currentScreen ?? const LoginScreen();
+    // Use the rebuild key to force complete widget recreation
+    if (_currentScreen != null) {
+      print('Building screen: ${_currentScreen.runtimeType} with key: $_screenRebuildKey');
+      return KeyedSubtree(
+        key: ValueKey('screen_${_currentScreen.runtimeType}_$_screenRebuildKey${_forceRebuild ? 'force' : 'normal'}'),
+        child: _currentScreen!,
+      );
+    }
+    
+    print('Building fallback LoginScreen with key: $_screenRebuildKey');
+    return KeyedSubtree(
+      key: ValueKey('login_screen_$_screenRebuildKey${_forceRebuild ? 'force' : 'normal'}'),
+      child: const LoginScreen(),
+    );
   }
 }

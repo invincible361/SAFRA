@@ -3,7 +3,6 @@ import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_sms/flutter_sms.dart';
 import 'dart:io';
 
 class SmsService {
@@ -20,21 +19,7 @@ class SmsService {
       // Generate location message
       String message = _generateLocationMessage(location, customMessage);
       
-      // Try direct SMS sending first (works on Android)
-      if (!kIsWeb && Platform.isAndroid) {
-        try {
-          await sendSMS(
-            message: message,
-            recipients: [phoneNumber],
-            sendDirect: true,
-          );
-          return true;
-        } catch (e) {
-          print('Direct SMS failed, trying URL scheme: $e');
-        }
-      }
-      
-      // Fallback to URL scheme for all platforms
+      // Use URL scheme for all platforms
       if (kIsWeb) {
         return await _shareLocationOnWeb(phoneNumber, message);
       } else if (Platform.isIOS) {
@@ -191,21 +176,7 @@ class SmsService {
         message += '\n💬 Message: $customMessage';
       }
       
-      // Try direct SMS sending first (works on Android)
-      if (!kIsWeb && Platform.isAndroid) {
-        try {
-          await sendSMS(
-            message: message,
-            recipients: [phoneNumber],
-            sendDirect: true,
-          );
-          return true;
-        } catch (e) {
-          print('Direct SMS failed, trying URL scheme: $e');
-        }
-      }
-      
-      // Fallback to URL scheme for all platforms
+      // Use URL scheme for all platforms
       if (kIsWeb) {
         return await _shareLocationOnWeb(phoneNumber, message);
       } else if (Platform.isIOS) {
@@ -218,8 +189,6 @@ class SmsService {
       return false;
     }
   }
-
-
 
   /// Check if SMS is available on the device
   static Future<bool> isSmsAvailable() async {

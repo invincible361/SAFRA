@@ -41,7 +41,7 @@ class TranslationSettingsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: languageService.getCurrentLanguageCode(),
+                          initialValue: languageService.getCurrentLanguageCode(),
                           decoration: const InputDecoration(
                             labelText: 'Select Language',
                             border: OutlineInputBorder(),
@@ -80,7 +80,7 @@ class TranslationSettingsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: languageService.translationProvider,
+                          initialValue: languageService.translationProvider,
                           decoration: const InputDecoration(
                             labelText: 'Select Provider',
                             border: OutlineInputBorder(),

@@ -28,6 +28,8 @@ dependencies:
   http: ^1.1.0
   contacts_service: ^0.6.3
   google_fonts: ^6.1.0
+  image_picker: ^1.0.4
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

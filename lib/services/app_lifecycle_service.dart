@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'biometric_service.dart';
-import '../screens/auth_screen.dart';
-import '../main.dart'; // Import to access navigatorKey
+// Import to access navigatorKey
 
 class AppLifecycleService {
   static final AppLifecycleService _instance = AppLifecycleService._internal();

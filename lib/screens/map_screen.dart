@@ -16,6 +16,7 @@ import 'login_screen.dart';
 import 'security_setup_screen.dart';
 import 'place_search_screen.dart';
 import 'ai_route_selection_screen.dart';
+import 'custom_path_screen.dart';
 import '../services/ai_route_service.dart';
 // Add flutter_map and latlong2 for web
 import 'package:flutter_map/flutter_map.dart' as fm;
@@ -24,7 +25,7 @@ import 'package:latlong2/latlong.dart' as latlng;
 String get googleApiKey => ApiConfig.googleMapsApiKey;
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({Key? key}) : super(key: key);
+  const MapScreen({super.key});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -127,7 +128,7 @@ class _MapScreenState extends State<MapScreen> {
       _webShowFromSuggestions.value = false;
       return;
     }
-    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=' + Uri.encodeComponent(query) + '&format=json&addressdetails=1&limit=5');
+    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
     final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
@@ -141,7 +142,7 @@ class _MapScreenState extends State<MapScreen> {
       _webShowToSuggestions.value = false;
       return;
     }
-    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=' + Uri.encodeComponent(query) + '&format=json&addressdetails=1&limit=5');
+    final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
     final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
@@ -157,7 +158,7 @@ class _MapScreenState extends State<MapScreen> {
     _destinationController.addListener(_onDestinationChanged);
     if (kIsWeb) {
       // On web, try to get the user's current location on map load
-      Future<void> _webSetUserLocation() async {
+      Future<void> webSetUserLocation() async {
         try {
           bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
           if (!serviceEnabled) return;
@@ -174,7 +175,7 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
       // Call this in initState
-      _webSetUserLocation();
+      webSetUserLocation();
     }
   }
 
@@ -405,7 +406,7 @@ class _MapScreenState extends State<MapScreen> {
       'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$query&key=$googleApiKey&components=country:in',
     );
     final response = await http.get(url);
-    print('Places API response: ' + response.body); // Debug print
+    print('Places API response: ${response.body}'); // Debug print
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       setState(() {
@@ -769,6 +770,94 @@ class _MapScreenState extends State<MapScreen> {
         _handleSelectedAIRoute(result);
       }
     }
+  }
+
+  void _openCustomPathSelection() async {
+    if (_destinationMarker != null) {
+      final destination = _destinationMarker!.position;
+      final currentLocation = _currentLatLng ?? const LatLng(0, 0);
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CustomPathScreen(
+            origin: currentLocation,
+            destination: destination,
+            destinationName: _destinationController.text,
+          ),
+        ),
+      );
+
+      if (result != null && result is List<LatLng>) {
+        // Handle custom path
+        _handleCustomPath(result);
+      } else {
+        // User chose not to use the custom path
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Custom path creation cancelled'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleCustomPath(List<LatLng> customPath) {
+    setState(() {
+      _routePoints = customPath;
+      _navigationSteps = _convertCustomPathToSteps(customPath);
+      // Update the polyline to show the custom path on the map
+      _routePolyline = Polyline(
+        polylineId: const PolylineId('route'),
+        color: Colors.purple,
+        width: 5,
+        points: customPath,
+      );
+    });
+
+    // Also update web-specific ValueNotifier if running on web
+    if (kIsWeb) {
+      // Convert LatLng to latlng.LatLng for web version
+      final webCustomPath = customPath.map((point) => latlng.LatLng(point.latitude, point.longitude)).toList();
+      _webRoutePoints.value = webCustomPath;
+    }
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Custom path loaded successfully!'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> _convertCustomPathToSteps(List<LatLng> path) {
+    List<Map<String, dynamic>> steps = [];
+    
+    for (int i = 0; i < path.length - 1; i++) {
+      steps.add({
+        'instruction': 'Continue straight',
+        'distance': '100m',
+        'duration': '1 min',
+        'maneuver': 'straight',
+        'startLocation': path[i],
+        'endLocation': path[i + 1],
+      });
+    }
+    
+    steps.add({
+      'instruction': 'Arrive at destination',
+      'distance': '0m',
+      'duration': '0 min',
+      'maneuver': 'arrive',
+      'startLocation': path.last,
+      'endLocation': path.last,
+    });
+    
+    return steps;
   }
 
   void _handleSelectedAIRoute(RouteOption route) {
@@ -1208,14 +1297,14 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     if (kIsWeb) {
       // --- Web: Place search state ---
-      Future<void> _webFetchSuggestions(String query) async {
+      Future<void> webFetchSuggestions(String query) async {
         if (query.isEmpty) {
           _webSuggestions.value = [];
           _webShowSuggestions.value = false;
           _webRoutePoints.value = [];
           return;
         }
-        final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=' + Uri.encodeComponent(query) + '&format=json&addressdetails=1&limit=5');
+        final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=5');
         final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
         if (response.statusCode == 200) {
           final List data = json.decode(response.body);
@@ -1224,7 +1313,7 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
 
-      Future<void> _webFetchRoute(latlng.LatLng start, latlng.LatLng end) async {
+      Future<void> webFetchRoute(latlng.LatLng start, latlng.LatLng end) async {
         // Use OSRM for routing
         final url = Uri.parse(
           'https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson',
@@ -1253,12 +1342,12 @@ class _MapScreenState extends State<MapScreen> {
         }
       }
       // Remove Geoapify integration for web places, use Nominatim for all place search
-      Future<void> _webFetchNominatimPlaces(String query) async {
+      Future<void> webFetchNominatimPlaces(String query) async {
         if (query.isEmpty) {
           _webGeoapifyPlaces.value = [];
           return;
         }
-        final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=' + Uri.encodeComponent(query) + '&format=json&addressdetails=1&limit=20');
+        final url = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=20');
         final response = await http.get(url, headers: {'User-Agent': 'safra-app/1.0'});
         if (response.statusCode == 200) {
           final List data = json.decode(response.body);
@@ -1426,7 +1515,7 @@ class _MapScreenState extends State<MapScreen> {
                       ElevatedButton(
                         onPressed: () {
                           if (_isValidLatLng(_webFromLatLng) && _isValidLatLng(_webToLatLng)) {
-                            _webFetchRoute(_webFromLatLng!, _webToLatLng!);
+                            webFetchRoute(_webFromLatLng!, _webToLatLng!);
                             _webMapCenter.value = _webFromLatLng!;
                           }
                         },
@@ -1546,7 +1635,7 @@ class _MapScreenState extends State<MapScreen> {
                   child: Stack(
                     children: [
                       // Embedded Street View
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         height: double.infinity,
                         child: ClipRRect(
@@ -1555,7 +1644,7 @@ class _MapScreenState extends State<MapScreen> {
                             children: [
                               // Street View content
                               _showStreetViewImage && _streetViewImageUrl != null
-                                  ? Container(
+                                  ? SizedBox(
                                 width: double.infinity,
                                 height: double.infinity,
                                 child: ClipRRect(
@@ -1896,30 +1985,59 @@ class _MapScreenState extends State<MapScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // AI Route Selection Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _destinationMarker != null ? _openAIRouteSelection : null,
-                      icon: const Icon(Icons.psychology, color: Colors.white),
-                      label: Text(
-                        '🤖 AI Route Selection',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  // Route Selection Buttons
+                  Row(
+                    children: [
+                      // AI Route Selection Button
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _destinationMarker != null ? _openAIRouteSelection : null,
+                          icon: const Icon(Icons.psychology, color: Colors.white),
+                          label: Text(
+                            '🤖 AI Route',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _destinationMarker != null
+                                ? const Color(0xFF9C27B0)
+                                : Colors.grey,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _destinationMarker != null
-                            ? const Color(0xFF9C27B0)
-                            : Colors.grey,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      const SizedBox(width: 8),
+                      // Custom Path Selection Button
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _destinationMarker != null ? _openCustomPathSelection : null,
+                          icon: const Icon(Icons.edit_road, color: Colors.white),
+                          label: Text(
+                            '🛣️ Custom Path',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _destinationMarker != null
+                                ? const Color(0xFF8E44AD)
+                                : Colors.grey,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   // Navigation Button

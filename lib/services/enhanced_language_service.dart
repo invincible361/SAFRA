@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'translation_service.dart';
@@ -16,58 +15,73 @@ class EnhancedLanguageService extends ChangeNotifier {
   String get translationProvider => _translationProvider;
   
   // Static translations for common UI elements
-  static const Map<String, Map<String, String>> _staticTranslations = {
-    'en': {
-      'appTitle': 'SAFRA App',
-      'welcome': 'Welcome Back',
-      'login': 'Login',
-      'email': 'Email',
-      'password': 'Password',
-      'signInWithGoogle': 'Sign in with Google',
-      'signOut': 'Sign Out',
-      'cancel': 'Cancel',
-      'ok': 'OK',
-      'error': 'Error',
-      'success': 'Success',
-      'loading': 'Loading...',
-      'map': 'Map',
-      'settings': 'Settings',
-      'securitySettings': 'Security Settings',
-    },
-    'hi': {
-      'appTitle': 'सफरा ऐप',
-      'welcome': 'वापसी पर स्वागत है',
-      'login': 'लॉगिन',
-      'email': 'ईमेल',
-      'password': 'पासवर्ड',
-      'signInWithGoogle': 'Google से साइन इन करें',
-      'signOut': 'साइन आउट',
-      'cancel': 'रद्द करें',
-      'ok': 'ठीक है',
-      'error': 'त्रुटि',
-      'success': 'सफलता',
-      'loading': 'लोड हो रहा है...',
-      'map': 'मानचित्र',
-      'settings': 'सेटिंग्स',
-      'securitySettings': 'सुरक्षा सेटिंग्स',
-    },
-    'kn': {
-      'appTitle': 'ಸಫರಾ ಅಪ್ಲಿಕೇಶನ್',
-      'welcome': 'ಮತ್ತೆ ಸುಸ್ವಾಗತ',
-      'login': 'ಲಾಗಿನ್',
-      'email': 'ಇಮೇಲ್',
-      'password': 'ಪಾಸ್‌ವರ್ಡ್',
-      'signInWithGoogle': 'Google ನೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ',
-      'signOut': 'ಸೈನ್ ಔಟ್',
-      'cancel': 'ರದ್ದುಮಾಡಿ',
-      'ok': 'ಸರಿ',
-      'error': 'ದೋಷ',
-      'success': 'ಯಶಸ್ವಿ',
-      'loading': 'ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
-      'map': 'ನಕ್ಷೆ',
-      'settings': 'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
-      'securitySettings': 'ಸುರಕ್ಷತೆ ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
-    },
+         static const Map<String, Map<String, String>> _staticTranslations = {
+           'en': {
+             'appTitle': 'SAFRA App',
+             'welcome': 'Welcome Back',
+             'getStarted': "Let's Get Started",
+             'login': 'Login',
+             'email': 'Email',
+             'password': 'Password',
+             'signInWithGoogle': 'Sign in with Google',
+             'signOut': 'Sign Out',
+             'cancel': 'Cancel',
+             'ok': 'OK',
+             'error': 'Error',
+             'success': 'Success',
+             'loading': 'Loading...',
+             'map': 'Map',
+             'settings': 'Settings',
+             'securitySettings': 'Security Settings',
+             'forgotPassword': 'Forgot Password?',
+             'dontHaveAccount': "Don't have an account?",
+             'signUp': 'Sign Up',
+             'or': 'OR',
+           },
+           'hi': {
+             'appTitle': 'सफरा ऐप',
+             'welcome': 'वापसी पर स्वागत है',
+             'getStarted': 'आइए शुरू करते हैं',
+             'login': 'लॉगिन',
+             'email': 'ईमेल',
+             'password': 'पासवर्ड',
+             'signInWithGoogle': 'Google से साइन इन करें',
+             'signOut': 'साइन आउट',
+             'cancel': 'रद्द करें',
+             'ok': 'ठीक है',
+             'error': 'त्रुटि',
+             'success': 'सफलता',
+             'loading': 'लोड हो रहा है...',
+             'map': 'मानचित्र',
+             'settings': 'सेटिंग्स',
+             'securitySettings': 'सुरक्षा सेटिंग्स',
+             'forgotPassword': 'पासवर्ड भूल गए?',
+             'dontHaveAccount': 'खाता नहीं है?',
+             'signUp': 'साइन अप करें',
+             'or': 'या',
+           },
+           'kn': {
+             'appTitle': 'ಸಫರಾ ಅಪ್ಲಿಕೇಶನ್',
+             'welcome': 'ಮತ್ತೆ ಸುಸ್ವಾಗತ',
+             'getStarted': 'ಆರಂಭಿಸೋಣ',
+             'login': 'ಲಾಗಿನ್',
+             'email': 'ಇಮೇಲ್',
+             'password': 'ಪಾಸ್‌ವರ್ಡ್',
+             'signInWithGoogle': 'Google ನೊಂದಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ',
+             'signOut': 'ಸೈನ್ ಔಟ್',
+             'cancel': 'ರದ್ದುಮಾಡಿ',
+             'ok': 'ಸರಿ',
+             'error': 'ದೋಷ',
+             'success': 'ಯಶಸ್ವಿ',
+             'loading': 'ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
+             'map': 'ನಕ್ಷೆ',
+             'settings': 'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
+             'securitySettings': 'ಸುರಕ್ಷತೆ ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
+             'forgotPassword': 'ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿದ್ದೀರಾ?',
+             'dontHaveAccount': 'ಖಾತೆ ಇಲ್ಲವೇ?',
+             'signUp': 'ಸೈನ್ ಅಪ್',
+             'or': 'ಅಥವಾ',
+           },
   };
   
   static final Map<String, Locale> supportedLocales = {
@@ -110,7 +124,14 @@ class EnhancedLanguageService extends ChangeNotifier {
         print('Error saving language preference: $e');
       }
       
+      // Clear translation cache to force fresh translations
+      clearTranslationCache();
+      
       print('EnhancedLanguageService: Notifying listeners of language change');
+      notifyListeners();
+      
+      // Force immediate UI refresh
+      await Future.delayed(const Duration(milliseconds: 100));
       notifyListeners();
     } else {
       print('EnhancedLanguageService: Language $languageCode is not supported');
@@ -139,7 +160,7 @@ class EnhancedLanguageService extends ChangeNotifier {
     return result;
   }
   
-  /// Translate dynamic text using API
+  /// Translate dynamic text using API with immediate UI update
   Future<String> translateText(String text) async {
     if (text.isEmpty) return text;
     
@@ -152,9 +173,7 @@ class EnhancedLanguageService extends ChangeNotifier {
     }
     
     try {
-      _isLoading = true;
-      notifyListeners();
-      
+      // Don't set loading state for individual text translations to avoid UI flicker
       String translatedText;
       if (_translationProvider == 'google') {
         print('EnhancedLanguageService: Using Google Translate');
@@ -165,13 +184,8 @@ class EnhancedLanguageService extends ChangeNotifier {
       }
       
       print('EnhancedLanguageService: Translation result: "$translatedText"');
-      
-      _isLoading = false;
-      notifyListeners();
       return translatedText;
     } catch (e) {
-      _isLoading = false;
-      notifyListeners();
       print('Translation error: $e');
       return text; // Return original text if translation fails
     }

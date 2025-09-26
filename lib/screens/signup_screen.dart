@@ -154,7 +154,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.2)),
       ),
       child: DropdownButtonFormField<String>(
-        value: selectedGovId,
+        initialValue: selectedGovId,
         dropdownColor: AppColors.surface,
         items: govIdTypes
             .map((id) => DropdownMenuItem(

@@ -53,6 +53,12 @@
 	<string>This app needs access to your location to show your position on the map.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>This app needs access to your contacts to help you quickly share your location with friends and family.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to your camera to take photos and videos for evidence upload.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photo library to select photos and videos for evidence upload.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to your microphone to record videos with audio for evidence upload.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

@@ -10,11 +10,11 @@ class AIRouteSelectionScreen extends StatefulWidget {
   final String destinationName;
 
   const AIRouteSelectionScreen({
-    Key? key,
+    super.key,
     required this.origin,
     required this.destination,
     required this.destinationName,
-  }) : super(key: key);
+  });
 
   @override
   State<AIRouteSelectionScreen> createState() => _AIRouteSelectionScreenState();

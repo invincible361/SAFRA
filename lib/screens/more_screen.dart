@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/app_colors.dart';
 
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({Key? key}) : super(key: key);
+  const MoreScreen({super.key});
 
   final List<Map<String, dynamic>> moreOptions = const [
     {"icon": Icons.help_outline, "title": "Help"},
@@ -103,7 +103,7 @@ class MoreScreen extends StatelessWidget {
 
 class SubOptionScreen extends StatelessWidget {
   final String title;
-  const SubOptionScreen({Key? key, required this.title}) : super(key: key);
+  const SubOptionScreen({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {

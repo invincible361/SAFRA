@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:safra_app/screens/set_password_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String fullName;
