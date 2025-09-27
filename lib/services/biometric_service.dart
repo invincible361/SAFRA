@@ -87,7 +87,7 @@ class BiometricService {
 
       print('BiometricService - Testing biometric authentication...');
       final result = await _localAuth.authenticate(
-        localizedReason: 'Please authenticate to enable Face Recognition',
+        localizedReason: 'Please authenticate to enable biometric security',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -102,7 +102,7 @@ class BiometricService {
     }
   }
 
-  // Authenticate with biometric
+  // Authenticate with biometric - generic biometric authentication
   static Future<bool> authenticateWithBiometric() async {
     try {
       final isEnabled = await isBiometricEnabled();
@@ -111,11 +111,15 @@ class BiometricService {
       final availableBiometrics = await getAvailableBiometrics();
       if (availableBiometrics.isEmpty) return false;
 
+      // Use generic authentication message
+      String authReason = 'Please authenticate to access the app';
+
       final result = await _localAuth.authenticate(
-        localizedReason: 'Please authenticate to access the app',
+        localizedReason: authReason,
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
+          sensitiveTransaction: true, // This indicates it's a security-critical operation
         ),
       );
 
@@ -224,4 +228,4 @@ class BiometricService {
       print('Error in testBiometricSetup: $e');
     }
   }
-} 
+}

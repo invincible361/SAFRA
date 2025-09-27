@@ -312,7 +312,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         _currentSecurityMethod!.contains('fingerprint')
                             ? Icons.fingerprint
                             : _currentSecurityMethod!.contains('face')
-                                ? Icons.face
+                                ? Icons.fingerprint
                                 : Icons.lock,
                         color: Colors.white,
                         size: 20,
@@ -407,7 +407,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       _currentSecurityMethod!.contains('fingerprint')
                           ? Icons.fingerprint
                           : _currentSecurityMethod!.contains('face')
-                              ? Icons.face
+                              ? Icons.fingerprint
                               : Icons.lock,
                       size: 24,
                     ),
@@ -466,4 +466,4 @@ class _AuthScreenState extends State<AuthScreen> {
     _pinController.dispose();
     super.dispose();
   }
-} 
+}

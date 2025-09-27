@@ -47,3 +47,8 @@ flutter:
   assets:
     - assets/logo.png
     - assets/.env
+    - assets/carousel/safety_priority.jpeg
+    - assets/carousel/safe_routes.jpeg
+    - assets/carousel/community_protection.jpeg
+    - assets/carousel/emergency_contacts.jpeg
+    - assets/carousel/evidence_collection.jpeg

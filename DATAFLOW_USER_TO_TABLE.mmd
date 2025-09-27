@@ -1,0 +1,113 @@
+graph TB
+    %% User Interface Layer
+    subgraph UI["📱 USER INTERFACE"]
+        UI1[Profile Screen]
+        UI2[Evidence Upload Screen]
+        UI3[Community Screen]
+        UI4[SOS Screen]
+        UI5[Settings Screen]
+    end
+
+    %% Service Processing Layer
+    subgraph SV["⚙️ SERVICE LAYER"]
+        SV1["UserProfileService"]
+        SV2["EvidenceService"]
+        SV3["CommunityService"]
+        SV4["LocationService"]
+        SV5["ContactService"]
+        SV6["SMSService"]
+    end
+
+    %% Supabase API Layer
+    subgraph API["🔌 SUPABASE API"]
+        API1["Auth API"]
+        API2["Database API"]
+        API3["Storage API"]
+        API4["Realtime API"]
+        API5["Edge Functions"]
+    end
+
+    %% Database Tables Level 1
+    subgraph DB1["🗄️ LEVEL 1: USER TABLES"]
+        T1[user_profiles]
+        T2[user_settings]
+        T3[storage.objects]
+    end
+
+    %% Database Tables Level 2
+    subgraph DB2["🗄️ LEVEL 2: EVIDENCE TABLES"]
+        T4[evidence]
+        T5[evidence_metadata]
+        T6[storage.objects]
+    end
+
+    %% Database Tables Level 3
+    subgraph DB3["🗄️ LEVEL 3: COMMUNITY TABLES"]
+        T7[community_messages]
+        T8[community_reports]
+    end
+
+    %% Database Tables Level 4
+    subgraph DB4["🗄️ LEVEL 4: SAFETY TABLES"]
+        T9[emergency_contacts]
+        T10[sos_history]
+        T11[location_history]
+    end
+
+    %% Data Flow Connections
+    UI1 -->|"Profile Data"| SV1
+    UI2 -->|"Evidence Data"| SV2
+    UI3 -->|"Messages/Reports"| SV3
+    UI4 -->|"SOS Activation"| SV4
+    UI5 -->|"Settings"| SV1
+
+    SV1 -->|"Upsert Profile"| API2
+    SV2 -->|"Upload Evidence"| API2
+    SV3 -->|"Post Messages"| API2
+    SV4 -->|"Location Data"| API2
+    SV5 -->|"Contact Info"| API2
+    SV6 -->|"SMS History"| API2
+
+    API2 -->|"Store Data"| T1
+    API2 -->|"Store Data"| T2
+    API2 -->|"Store Data"| T4
+    API2 -->|"Store Data"| T5
+    API2 -->|"Store Data"| T7
+    API2 -->|"Store Data"| T8
+    API2 -->|"Store Data"| T9
+    API2 -->|"Store Data"| T10
+    API2 -->|"Store Data"| T11
+
+    API3 -->|"File Upload"| T3
+    API3 -->|"File Upload"| T6
+
+    %% Real-time Connections
+    API4 -.->|"Live Updates"| UI3
+    API4 -.->|"Emergency Broadcast"| UI4
+
+    %% Authentication Flow
+    API1 -->|"Auth Check"| SV1
+    API1 -->|"Auth Check"| SV2
+    API1 -->|"Auth Check"| SV3
+    API1 -->|"Auth Check"| SV4
+    API1 -->|"Auth Check"| SV5
+
+    %% Cross-Table Relationships
+    T1 -.->|"FK: user_id"| T4
+    T1 -.->|"FK: user_id"| T7
+    T1 -.->|"FK: user_id"| T8
+    T1 -.->|"FK: user_id"| T9
+    T1 -.->|"FK: user_id"| T10
+    T1 -.->|"FK: user_id"| T11
+    T4 -.->|"FK: evidence_id"| T5
+    T7 -.->|"Self FK"| T7
+
+    classDef uiStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef serviceStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef apiStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef dbStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+
+    class UI uiStyle
+    class SV serviceStyle
+    class API apiStyle
+    class DB1,DB2,DB3,DB4 dbStyle

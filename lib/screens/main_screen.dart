@@ -52,7 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (mounted && _carouselController.hasClients) {
         final nextIndex = (_carouselController.page?.toInt() ?? 0) + 1;
-        final targetIndex = nextIndex >= 3 ? 0 : nextIndex; // We have 3 carousel items
+        final targetIndex = nextIndex >= 5 ? 0 : nextIndex; // We have 5 carousel items
         _carouselController.animateToPage(
           targetIndex,
           duration: const Duration(milliseconds: 500),
@@ -88,6 +88,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const CommunityScreen()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EmergencyHelplineScreen()),
+        );
+        break;
+      case 4:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EvidenceUploadScreen()),
         );
         break;
     }
@@ -127,19 +139,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Enhanced carousel content with safety-focused images and messages
     final carouselItems = <Map<String, String>>[
       {
-        'image': 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=1200',
+        'image': 'assets/carousel/safety_priority.jpeg',
         'title': 'Your Safety is Our Priority',
         'subtitle': '24/7 emergency support at your fingertips',
       },
       {
-        'image': 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?q=80&w=1200',
+        'image': 'assets/carousel/safe_routes.jpeg',
         'title': 'Safe Routes Navigation',
         'subtitle': 'AI-powered pathfinding for safer journeys',
       },
       {
-        'image': 'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=80&w=1200',
+        'image': 'assets/carousel/community_protection.jpeg',
         'title': 'Community Protection',
         'subtitle': 'Connect with trusted helpers nearby',
+      },
+      {
+        'image': 'assets/carousel/emergency_contacts.jpeg',
+        'title': 'Emergency Contacts',
+        'subtitle': 'Quick access to emergency services and contacts',
+      },
+      {
+        'image': 'assets/carousel/evidence_collection.jpeg',
+        'title': 'Evidence Collection',
+        'subtitle': 'Secure evidence upload and community sharing',
       },
     ];
 
@@ -244,7 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: AppColors.glassBorder, width: 1),
                                 image: DecorationImage(
-                                  image: NetworkImage(item['image']!),
+                                  image: AssetImage(item['image']!),
                                   fit: BoxFit.cover,
                                 ),
                                 boxShadow: [

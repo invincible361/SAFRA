@@ -336,17 +336,6 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
                       child: const Text('Test Biometric Setup'),
                     ),
                     const SizedBox(height: 8),
-                    // Direct Face Recognition button
-                    if (_biometricAvailable && _availableBiometrics.contains('Face Recognition'))
-                      ElevatedButton.icon(
-                        onPressed: () => _enableBiometric(BiometricType.face),
-                        icon: const Icon(Icons.face),
-                        label: const Text('Enable Face Recognition Now'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -367,7 +356,7 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
                         Icon(Icons.info, color: Colors.white),
                         SizedBox(width: 8),
                         Text(
-                          'How to Enable Face Unlock',
+                          'How to Enable Biometric Security',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -378,9 +367,9 @@ class _SecuritySetupScreenState extends State<SecuritySetupScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      '1. Make sure Face ID is set up on your device\n'
-                          '2. Tap "Enable Face Recognition Now" below\n'
-                          '3. Look at your device when prompted\n'
+                      '1. Make sure biometric authentication is set up on your device\n'
+                          '2. Tap "Enable Biometric" below\n'
+                          '3. Follow the prompts to authenticate\n'
                           '4. After setup, sign out and sign back in to test',
                       style: TextStyle(color: Colors.white),
                     ),
